@@ -1,0 +1,14 @@
+# MPC Protocol - VLSI/EDA Perl Script Analyzer
+# Core dependencies (minimal - uses only Python standard library)
+
+# Optional PDF generation with ReportLab (for richer PDF output)
+# reportlab>=4.0
+
+# Optional web framework for enhanced MCP server
+# flask>=2.0
+
+# Development and testing
+# pytest>=7.0
+
+# Note: The core system works with Python 3.8+ standard library only.
+# No additional packages are required for basic functionality.

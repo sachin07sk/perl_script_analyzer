@@ -1,0 +1,163 @@
+{
+    "eda_tools": {
+        "synopsys_dc": {
+            "name": "Synopsys Design Compiler",
+            "version": "2021.09",
+            "modern_alternative": "Genus Synthesis Tool",
+            "commands": [
+                "dc_shell",
+                "analyze",
+                "elaborate",
+                "compile",
+                "write -f ddc",
+                "write -f verilog",
+                "write_sdf",
+                "write_sdc",
+                "report_timing",
+                "report_area",
+                "report_power",
+                "report_qor",
+                "current_design",
+                "link",
+                "uniquify",
+                "set_dont_touch",
+                "set_dont_use",
+                "set_max_delay",
+                "set_min_delay",
+                "set_input_delay",
+                "set_output_delay",
+                "set_clock",
+                "set_clock_latency",
+                "set_clock_uncertainty",
+                "set_clock_transition",
+                "set_load",
+                "set_fanout_load",
+                "set_max_area",
+                "set_max_fanout",
+                "set_max_transition",
+                "set_operating_conditions",
+                "set_wire_load_model",
+                "set_wire_load_mode"
+            ]
+        },
+        "synopsys_pt": {
+            "name": "Synopsys PrimeTime",
+            "version": "2021.06",
+            "modern_alternative": "PrimeTime 2020+",
+            "commands": [
+                "pt_shell",
+                "read_verilog",
+                "read_vhdl",
+                "read_db",
+                "read_sdc",
+                "read_spef",
+                "read_parasitics",
+                "report_timing",
+                "report_analysis_coverage",
+                "report_constraint",
+                "report_min_pulse_width",
+                "report_cppr",
+                "report_clock_gating",
+                "update_timing",
+                "set_operating_conditions",
+                "set_analysis_mode",
+                "set_timing_derate",
+                "set_clock_latency",
+                "set_clock_uncertainty"
+            ]
+        },
+        "cadence_innovus": {
+            "name": "Cadence Innovus",
+            "version": "21.10",
+            "modern_alternative": "Innovus 21+",
+            "commands": [
+                "innovus",
+                "encounter",
+                "floorplan",
+                "place_opt_design",
+                "ccopt_design",
+                "route_design",
+                "opt_design",
+                "time_design",
+                "report_timing",
+                "report_qor",
+                "report_power",
+                "report_area",
+                "defIn",
+                "lefIn",
+                "verilogIn",
+                "placeDesign",
+                "routeDesign",
+                "addFiller",
+                "addWellTap",
+                "setDrawView",
+                "setAnalysisMode",
+                "setOptMode"
+            ]
+        },
+        "cadence_genus": {
+            "name": "Cadence Genus",
+            "version": "21.10",
+            "modern_alternative": "Genus 21+",
+            "commands": [
+                "genus",
+                "read_hdl",
+                "read_db",
+                "read_sdc",
+                "syn_generic",
+                "syn_map",
+                "syn_opt",
+                "report_timing",
+                "report_area",
+                "report_power",
+                "write_hdl",
+                "write_sdc",
+                "write_db"
+            ]
+        },
+        "mentor_calibre": {
+            "name": "Mentor/Siemens Calibre",
+            "version": "2021.2",
+            "modern_alternative": "Calibre 2021+",
+            "commands": [
+                "calibre",
+                "calibre -drc",
+                "calibre -lvs",
+                "calibre -xrc",
+                "calibre_64",
+                "drc_rules",
+                "lvs_rules",
+                "PEX",
+                "nmLVS",
+                "nmDRC"
+            ]
+        }
+    },
+    "script_categories": {
+        "synthesis": {
+            "tools": [
+                "synopsys_dc",
+                "cadence_genus"
+            ],
+            "description": "RTL-to-gate synthesis scripts"
+        },
+        "timing": {
+            "tools": [
+                "synopsys_pt"
+            ],
+            "description": "Static timing analysis scripts"
+        },
+        "physical_design": {
+            "tools": [
+                "cadence_innovus"
+            ],
+            "description": "Place and route scripts"
+        },
+        "verification": {
+            "tools": [
+                "mentor_calibre"
+            ],
+            "description": "DRC/LVS verification scripts"
+        }
+    }
+}

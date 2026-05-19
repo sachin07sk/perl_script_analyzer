@@ -1,0 +1,39 @@
+{
+    "servers": {
+        "parser": {
+            "port": 5001,
+            "idle_timeout": 900,
+            "auto_start": false,
+            "max_instances": 2,
+            "description": "Perl Script Parser Server"
+        },
+        "analyzer": {
+            "port": 5002,
+            "idle_timeout": 900,
+            "auto_start": false,
+            "max_instances": 2,
+            "description": "Perl Script Analyzer Server"
+        },
+        "modernizer": {
+            "port": 5003,
+            "idle_timeout": 1200,
+            "auto_start": false,
+            "max_instances": 1,
+            "description": "Code Modernizer Server"
+        },
+        "pdf_generator": {
+            "port": 5004,
+            "idle_timeout": 1800,
+            "auto_start": false,
+            "max_instances": 1,
+            "description": "PDF Report Generator Server"
+        },
+        "eda_knowledge": {
+            "port": 5005,
+            "idle_timeout": 600,
+            "auto_start": false,
+            "max_instances": 1,
+            "description": "EDA Knowledge Base Server"
+        }
+    }
+}

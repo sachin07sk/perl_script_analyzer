@@ -1,0 +1,109 @@
+{
+    "perl_versions": {
+        "5.8": {
+            "release_year": 2002,
+            "status": "end_of_life",
+            "key_features": [],
+            "missing_features": [
+                "say() function",
+                "defined-or // operator",
+                "given/when switch",
+                "smartmatch operator",
+                "lexical filehandles (3-arg open)"
+            ],
+            "upgrade_path": "5.32"
+        },
+        "5.10": {
+            "release_year": 2007,
+            "status": "end_of_life",
+            "key_features": [
+                "say()",
+                "// operator",
+                "given/when"
+            ],
+            "missing_features": [
+                "subroutine signatures",
+                "try/catch",
+                "defer"
+            ],
+            "upgrade_path": "5.32"
+        },
+        "5.16": {
+            "release_year": 2012,
+            "status": "end_of_life",
+            "key_features": [
+                "say()",
+                "// operator",
+                "given/when"
+            ],
+            "missing_features": [
+                "subroutine signatures",
+                "try/catch"
+            ],
+            "upgrade_path": "5.32"
+        },
+        "5.20": {
+            "release_year": 2014,
+            "status": "end_of_life",
+            "key_features": [
+                "say()",
+                "// operator",
+                "given/when",
+                "subroutine signatures (experimental)"
+            ],
+            "missing_features": [
+                "stable signatures",
+                "try/catch"
+            ],
+            "upgrade_path": "5.32"
+        },
+        "5.32": {
+            "release_year": 2020,
+            "status": "current",
+            "key_features": [
+                "say()",
+                "// operator",
+                "given/when",
+                "stable subroutine signatures",
+                "isa operator",
+                "try/catch (experimental)",
+                "unicode 13.0"
+            ],
+            "upgrade_path": "current"
+        },
+        "5.34": {
+            "release_year": 2021,
+            "status": "current",
+            "key_features": [
+                "stable subroutine signatures",
+                "isa operator",
+                "try/catch (experimental)",
+                "unicode 13.0",
+                "defer (experimental)"
+            ],
+            "upgrade_path": "current"
+        }
+    },
+    "deprecated_pragmas": {
+        "vars": {
+            "replacement": "our",
+            "since": "5.6"
+        },
+        "diagnostics": {
+            "replacement": "warnings",
+            "since": "5.6"
+        },
+        "assertions": {
+            "replacement": "Carp",
+            "since": "5.8"
+        }
+    },
+    "modern_alternatives": {
+        "open(FH, \"<$file\")": "open(my $fh, '<', $file) or die ...",
+        "print \"...\\n\"": "say \"...\"",
+        "defined($var) ? $var : $default": "$var // $default",
+        "if (... ) { } elsif (...) { } elsif (...) { }": "given/when or dispatch table",
+        "\\@array": "[@array]",
+        "\\%hash": "{%hash}"
+    }
+}
