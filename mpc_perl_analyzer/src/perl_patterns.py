@@ -13,28 +13,17 @@ from typing import List, Dict, Any, Optional
 # Pattern Definitions
 # ============================================================
 
-# Patterns for detecting Perl version-related issues
+# All detection patterns for Perl script analysis
 PERL_VERSION_PATTERNS = [
+    # Original patterns
     {
         'id': 'PERL-OLD-OPEN',
         'category': 'file_io',
         'severity': 'warning',
         'pattern': r'\bopen\s*\(\s*(?!my\s+\$)\w+\s*,\s*["\']',
         'description': 'Old-style 2-argument open with bareword filehandle',
-        'explanation': (
-            "This uses the old-style open() function with a bareword filehandle "
-            "(like FILEHANDLE instead of $fh). Modern Perl recommends using "
-            "a lexical filehandle variable (my $fh) with 3-argument open for "
-            "better security, scoping, and error handling."
-        ),
-        'modern_code': 'open(my $fh, \'<\', $filename) or die "Cannot open $filename: $!";',
-        'perl_version_introduced': '5.6',
-        'benefits': [
-            'Lexical scoping prevents accidental global access',
-            '3-argument open prevents shell injection attacks',
-            'Automatic cleanup when variable goes out of scope',
-            'Better error messages with explicit filename'
-        ]
+        'explanation': "This uses old-style open() with a bareword filehandle. Use lexical handles with 3-arg open.",
+        'modern_code': "open(my $fh, '<', \$filename) or die \"Cannot open: \$!\";",
     },
     {
         'id': 'PERL-OLD-FILEHANDLE',
@@ -42,82 +31,17 @@ PERL_VERSION_PATTERNS = [
         'severity': 'warning',
         'pattern': r'\b(?:print|printf|say)\s+(?!\{)\w+\s+(?!\()',
         'description': 'Bareword filehandle used with print/printf',
-        'explanation': (
-            "Using a bareword filehandle directly with print/printf is an "
-            "older Perl style. Modern Perl prefers using a lexical filehandle "
-            "variable in curly braces, which provides better scoping and "
-            "makes code easier to read and maintain."
-        ),
+        'explanation': "Using bareword filehandles is deprecated. Use lexical filehandles.",
         'modern_code': 'print {$fh} "output\\n";',
-        'perl_version_introduced': '5.6',
-        'benefits': [
-            'Lexical scoping for filehandles',
-            'Consistent syntax with other Perl constructs',
-            'Easier to refactor and maintain'
-        ]
     },
     {
         'id': 'PERL-OLD-FOR-DECL',
         'category': 'control_flow',
         'severity': 'info',
-        'pattern': r'\bfor\s*\(\s*my\s+\$\w+\s*=\s*\d+\s*;\s*\$\w+\s*<\s*\d+\s*;\s*\$\w+\+\+\s*\)',
+        'pattern': r'\bfor\s*\(\s*my\s+\$\w+\s*=\s*\d+\s*;',
         'description': 'C-style for loop - consider Perl foreach style',
-        'explanation': (
-            "This is a C-style for loop. Perl offers more readable foreach "
-            "loops and range operators that are often simpler and more "
-            "idiomatic. Consider using foreach my $i (0..$n-1) instead."
-        ),
+        'explanation': "C-style for loops can be replaced with foreach for readability.",
         'modern_code': 'foreach my $i (0..$#array) { ... }',
-        'perl_version_introduced': '4.0',
-        'benefits': [
-            'More readable and Perl-idiomatic',
-            'Less boilerplate code',
-            'Works naturally with arrays/hashes'
-        ]
-    },
-    {
-        'id': 'PERL-OLD-GREP',
-        'category': 'functional',
-        'severity': 'info',
-        'pattern': r'\b(?:map|grep)\s*\{[^}]*\}\s*(?!\s*\))',
-        'description': 'Old-style map/grep with block - consider using with expr',
-        'explanation': (
-            "Using map/grep with a block {} is perfectly valid Perl. However, "
-            "for simple operations, using the expression form with a comma "
-            "can be more concise and readable."
-        ),
-        'modern_code': 'my @results = map { $_->process() } @items;',
-        'perl_version_introduced': '5.0',
-        'benefits': [
-            'Block form allows multi-statement operations',
-            'More readable for complex transformations'
-        ]
-    },
-    {
-        'id': 'PERL-OLD-SWITCH',
-        'category': 'control_flow',
-        'severity': 'warning',
-        'pattern': r'\b(?:if\s*\(.+\)\s*\{[^}]*\}\s*elsif\s*\(.+\)\s*\{[^}]*\}\s*elsif)',
-        'description': 'Long if-elsif chain - consider given/when or dispatch table',
-        'explanation': (
-            "Long chains of if-elsif statements can be hard to read and "
-            "maintain. Perl 5.10+ introduced the given/when switch statement. "
-            "Alternatively, consider using a dispatch table with a hash."
-        ),
-        'modern_code': (
-            "use feature 'switch';\n"
-            "given ($value) {\n"
-            "    when ('case1') { ... }\n"
-            "    when ('case2') { ... }\n"
-            "    default { ... }\n"
-            "}"
-        ),
-        'perl_version_introduced': '5.10',
-        'benefits': [
-            'Cleaner switch-like syntax',
-            'Better performance with dispatch tables',
-            'Easier to add new cases'
-        ]
     },
     {
         'id': 'PERL-MODERN-SAY',
@@ -125,57 +49,8 @@ PERL_VERSION_PATTERNS = [
         'severity': 'info',
         'pattern': r'\bprint\s+(?:\{[\$@%]\w+\})?\s*["\'].*?\\n["\']\s*;',
         'description': 'Print with explicit newline - consider using say',
-        'explanation': (
-            "Using print with an explicit newline character \\n can be replaced "
-            "with the say() function (available since Perl 5.10), which "
-            "automatically appends a newline. This makes the code cleaner and "
-            "less error-prone."
-        ),
-        'modern_code': 'say "Hello, World!";',
-        'perl_version_introduced': '5.10',
-        'benefits': [
-            'Automatic newline handling',
-            'Less typing and cleaner code',
-            'Part of Perl 5.10+ core features'
-        ]
-    },
-    {
-        'id': 'PERL-OLD-DEFINED-OR',
-        'category': 'operators',
-        'severity': 'info',
-        'pattern': r'\bdefined\s*\(\s*(\$\w+)\s*\)\s*(?:&&|\?)\s*',
-        'description': 'Defined-or check - consider using // operator',
-        'explanation': (
-            "Checking if a variable is defined before using it can be simplified "
-            "with the defined-or operator // (Perl 5.10+). This operator returns "
-            "the left side if it's defined, otherwise the right side."
-        ),
-        'modern_code': 'my $value = $var // "default";',
-        'perl_version_introduced': '5.10',
-        'benefits': [
-            'More concise than explicit defined() checks',
-            'Works with all defined-or scenarios',
-            'Part of Perl 5.10+ core'
-        ]
-    },
-    {
-        'id': 'PERL-OLD-EXPR-REF',
-        'category': 'references',
-        'severity': 'info',
-        'pattern': r'\\\s*@(\w+)\b',
-        'description': 'Backslash reference to array - consider [@array]',
-        'explanation': (
-            "Using \\@array to create a reference to an array works, but using "
-            "square brackets [...] is more explicit and creates an anonymous "
-            "array reference. This is the preferred modern Perl style."
-        ),
-        'modern_code': 'my $array_ref = [@array];  # instead of \\@array',
-        'perl_version_introduced': '5.0',
-        'benefits': [
-            'More explicit intention',
-            'Creates anonymous array reference',
-            'Consistent with hash references'
-        ]
+        'explanation': "The say() function automatically adds a newline, making code cleaner.",
+        'modern_code': 'say "your text here";',
     },
     {
         'id': 'PERL-MISSING-STRICT',
@@ -183,20 +58,8 @@ PERL_VERSION_PATTERNS = [
         'severity': 'error',
         'pattern': r'^(?!.*\buse\s+strict\b)',
         'description': 'Missing "use strict" pragma',
-        'explanation': (
-            "The 'use strict' pragma is essential for writing robust Perl code. "
-            "It enforces variable declaration with my/our, prevents bareword "
-            "usage, and catches many common programming errors. It should be "
-            "the first pragma after the shebang line."
-        ),
-        'modern_code': 'use strict;\\nuse warnings;',
-        'perl_version_introduced': '5.0',
-        'benefits': [
-            'Forces variable declaration, preventing typos',
-            'Prevents accidental bareword interpretation',
-            'Catches common errors at compile time',
-            'Industry standard for Perl development'
-        ]
+        'explanation': "The 'use strict' pragma is essential for robust Perl code.",
+        'modern_code': 'use strict;\nuse warnings;',
     },
     {
         'id': 'PERL-MISSING-WARNINGS',
@@ -204,315 +67,520 @@ PERL_VERSION_PATTERNS = [
         'severity': 'warning',
         'pattern': r'^(?!.*\buse\s+warnings\b)',
         'description': 'Missing "use warnings" pragma',
-        'explanation': (
-            "The 'use warnings' pragma enables warning messages for potential "
-            "issues in your code, such as uninitialized variables, deprecated "
-            "constructs, and type mismatches. It's essential for debugging "
-            "and writing reliable Perl code."
-        ),
+        'explanation': "The 'use warnings' pragma enables diagnostic messages.",
         'modern_code': 'use warnings;',
-        'perl_version_introduced': '5.6',
-        'benefits': [
-            'Catches uninitialized variable usage',
-            'Identifies deprecated constructs',
-            'Helps with debugging and testing'
-        ]
     },
     {
-        'id': 'PERL-OLD-QW',
+        'id': 'PERL-MISSING-VERSION',
         'category': 'best_practice',
         'severity': 'info',
-        'pattern': r'\bqw\s*\((?!\))',
-        'description': 'Use qw() with parentheses',
-        'explanation': (
-            "Using qw() (quote words) with quoted strings like ('word1', 'word2') "
-            "can be simplified. The qw() function automatically splits on "
-            "whitespace, so you can write qw(word1 word2) instead."
-        ),
-        'modern_code': 'my @list = qw(element1 element2 element3);',
-        'perl_version_introduced': '5.0',
-        'benefits': [
-            'Less typing',
-            'Cleaner code',
-            'No need for quotes or commas'
-        ]
+        'pattern': r'^(?!.*\buse\s+v\d+\.\d+\b)',
+        'description': 'Missing Perl version declaration',
+        'explanation': "Without a version pragma, the script may run on incompatible Perl versions.",
+        'modern_code': 'use v5.20;',
     },
     {
-        'id': 'PERL-OLD-HASH-ACCESS',
-        'category': 'data_structures',
+        'id': 'PERL-UNMATCHED-BRACE',
+        'category': 'syntax',
+        'severity': 'critical',
+        'pattern': r'^\s*\}\s*$',
+        'description': 'Unmatched closing brace — COMPILE-TIME BLOCKER',
+        'explanation': "Extra closing brace prevents script from compiling. All other issues are irrelevant until fixed.",
+        'modern_code': 'perl -c script.pl    # verify syntax',
+    },
+    # v3.0: Execution-level issues
+    {
+        'id': 'PERL-UNCHECKED-RETURN-CONTEXT',
+        'category': 'execution_flow',
+        'severity': 'error',
+        'pattern': r'\bmy\s*\(\s*\$(\w+)\s*,\s*\$(\w+)\s*\)\s*=\s*\w+',
+        'description': 'Return value used without context check',
+        'explanation': "2-value return not validated — second var silently becomes undef on error.",
+        'modern_code': "my @r = func(); die unless @r == 2; my ($a,$b)=@r;",
+    },
+    {
+        'id': 'PERL-LOOP-NO-BOUNDS',
+        'category': 'loop',
+        'severity': 'warning',
+        'pattern': r'\bforeach\s+my\s+\$\w+\s+@',
+        'description': 'Loop iterates list without bounds check',
+        'explanation': "No max iteration guard — unexpected large list causes memory exhaustion.",
+        'modern_code': "my \$max=100; my \$count=0; for my \$item (\@items) { last if ++\$count > \$max; ... }",
+    },
+    {
+        'id': 'PERL-UNBOUNDED-SOCKET-READ',
+        'category': 'loop',
+        'severity': 'warning',
+        'pattern': r'while\s*\(?\s*<\s*\$(\w+)\s*>\s*\)?',
+        'description': 'Socket read loop has no byte limit',
+        'explanation': "while(<\$socket>) without byte cap can cause memory exhaustion.",
+        'modern_code': "my \$max=1_048_576; while (my \$chunk = <\$socket>) { \$response.=\$chunk; die if length > \$max; }",
+    },
+    {
+        'id': 'PERL-VOID-CALL',
+        'category': 'calling',
+        'severity': 'warning',
+        'pattern': r'^\s*test_\w+\s*\(\s*\)\s*;\s*$',
+        'description': 'Subroutine called in void context without eval{}',
+        'explanation': "Crashed test kills all remaining tests — no eval{} isolation.",
+        'modern_code': "eval { test_sub() }; if (\$@) { log_result('EXCEPTION','FAIL',\$@); }",
+    },
+    {
+        'id': 'PERL-UNCHECKED-METHOD-CHAIN',
+        'category': 'calling',
+        'severity': 'warning',
+        'pattern': r'IO::Socket::INET\s*->\s*new\s*\(',
+        'description': 'Method chain without intermediate check',
+        'explanation': "->new() returns undef on failure — unchecked use causes crash.",
+    },
+    {
+        'id': 'PERL-FRAGILE-EVAL-STRING',
+        'category': 'execution_flow',
         'severity': 'info',
-        'pattern': r'\$\w+\{["\']([^"\']+)["\']\}',
-        'description': 'Hash access with quoted string keys - bareword keys suffice',
-        'explanation': (
-            "Accessing hash elements with quoted string keys like $hash{'key'} "
-            "is valid but unnecessary. Perl automatically treats barewords as "
-            "strings when used as hash keys, so $hash{key} is preferred in "
-            "modern Perl."
-        ),
-        'modern_code': 'my $value = $hash{key};  # instead of $hash{\'key\'}',
-        'perl_version_introduced': '4.0',
-        'benefits': [
-            'Cleaner and more readable',
-            'Less visual clutter',
-            'Consistent with Perl idioms'
-        ]
-    }
+        'pattern': r'\$@\s*eq\s*["\'][^"\']*["\']',
+        'description': 'Fragile $@ string comparison',
+        'explanation': "String-matching \$@ breaks if error message changes.",
+    },
+    # v4.0: Dependency / portability / protocol / resilience
+    {
+        'id': 'PERL-DEP-NO-VERSION-PIN',
+        'category': 'dependencies',
+        'severity': 'warning',
+        'pattern': r'\buse\s+(JSON|JSON::XS|DBI|LWP)\s*;',
+        'description': 'CPAN module not version-pinned',
+        'explanation': "JSON 1.x vs 4.x API differences. Pin version for consistency.",
+        'modern_code': 'use JSON 2.90;',
+    },
+    {
+        'id': 'PERL-DEP-NO-FALLBACK',
+        'category': 'dependencies',
+        'severity': 'warning',
+        'pattern': r'\buse\s+(JSON|XML::LibXML|DBI|LWP)',
+        'description': 'No fallback if module missing',
+        'explanation': "Script dies with no helpful message if module not installed.",
+    },
+    {
+        'id': 'PERL-DEP-MISSING-HIRES',
+        'category': 'dependencies',
+        'severity': 'info',
+        'pattern': r'\btime\s*\(\s*\)',
+        'description': 'Time::HiRes not imported — 1s resolution',
+        'explanation': "time() has 1-second resolution. Milliseconds-level latency invisible.",
+        'modern_code': 'use Time::HiRes qw(time);',
+    },
+    {
+        'id': 'PERL-DEP-MISSING-SCALAR-UTIL',
+        'category': 'dependencies',
+        'severity': 'info',
+        'pattern': r'\b(?:bless|ref)\s*\(',
+        'description': 'Scalar::Util not imported',
+        'explanation': "No blessed()/reftype() checks for safe type validation.",
+    },
+    {
+        'id': 'PERL-ALARM-NOT-PORTABLE',
+        'category': 'portability',
+        'severity': 'warning',
+        'pattern': r'\balarm\s*\(',
+        'description': 'alarm() not portable on Windows',
+        'explanation': "alarm() silently does nothing on Windows — script may hang forever.",
+        'modern_code': 'use IO::Select; my $sel = IO::Select->new($socket); if ($sel->can_read($TIMEOUT)) { ... }',
+    },
+    {
+        'id': 'PERL-JSONRPC-STATIC-ID',
+        'category': 'protocol',
+        'severity': 'warning',
+        'pattern': r'id\s*=>\s*\d+',
+        'description': 'JSON-RPC id hardcoded',
+        'explanation': "JSON-RPC 2.0 requires unique id per request.",
+        'modern_code': 'my $req_id = 0; id => ++$req_id,',
+    },
+    {
+        'id': 'PERL-JSONRPC-ID-MISMATCH',
+        'category': 'protocol',
+        'severity': 'warning',
+        'pattern': r'decode_json\s*\(',
+        'description': 'No response id validation',
+        'explanation': "Response id not verified against request id.",
+    },
+    {
+        'id': 'PERL-NO-SUITE-TIMEOUT',
+        'category': 'resilience',
+        'severity': 'info',
+        'pattern': r'^\s*test_\w+\s*\(\s*\)\s*;\s*$',
+        'description': 'No overall suite timeout',
+        'explanation': "8 tests x 10s = 80s worst-case blocking.",
+    },
+    {
+        'id': 'PERL-UNBOUNDED-RESULTS-ARRAY',
+        'category': 'resilience',
+        'severity': 'info',
+        'pattern': r'\bpush\s+@\w+,\s*\$',
+        'description': '@results grows unbounded',
+        'explanation': "No size cap — memory fills under long loops.",
+    },
+    {
+        'id': 'PERL-LOG-NO-ROTATION',
+        'category': 'operations',
+        'severity': 'info',
+        'pattern': r'open\s*\(?\s*my\s+\$\w+\s*,\s*[\'"]>[\'"]\s*,?\s*\$?\w*log',
+        'description': 'Log file overwrites on each run',
+        'explanation': "open('>', \$LOG_FILE) truncates previous logs.",
+    },
+    {
+        'id': 'PERL-NO-STRUCTURED-OUTPUT',
+        'category': 'operations',
+        'severity': 'info',
+        'pattern': r'^\s*print\s+["\'].*RESULTS.*["\']',
+        'description': 'No structured CI/CD output',
+        'explanation': "Plain text can't be parsed by CI/CD systems.",
+    },
+    {
+        'id': 'PERL-UNCHECKED-CLOSE',
+        'category': 'file_io',
+        'severity': 'warning',
+        'pattern': r'\bclose\s*\(\s*\$?\w+\s*\)\s*;',
+        'description': 'close() return value not checked',
+        'explanation': "Buffered writes may fail silently on close().",
+        'modern_code': 'close($fh) or warn "Close failed: $!";',
+    },
+    # v5.0: Security and consistency patterns
+    {
+        'id': 'PERL-DEAD-CODE-MYSUB',
+        'category': 'undocumented',
+        'severity': 'warning',
+        'pattern': r'^\s*sub\s+mysub\s*\{',
+        'description': 'mysub() defined but never called — dead code',
+        'explanation': "mysub() compiles but is never executed. Wasted compile time + confusion.",
+    },
+    {
+        'id': 'PERL-MISSING-SUB-SIGNATURE',
+        'category': 'documentation',
+        'severity': 'warning',
+        'pattern': r'^\s*sub\s+\w+\s*\{',
+        'description': 'Subroutine missing doc comment header',
+        'explanation': "No argument/return documentation — side effects invisible.",
+    },
+    {
+        'id': 'PERL-NO-TLS',
+        'category': 'security',
+        'severity': 'warning',
+        'pattern': r'\buse\s+IO::Socket::INET\b',
+        'description': 'No TLS — plaintext TCP used',
+        'explanation': "Perl source code transmitted in cleartext over TCP.",
+    },
+    {
+        'id': 'PERL-NO-RESPONSE-SCHEMA',
+        'category': 'resilience',
+        'severity': 'warning',
+        'pattern': r'decode_json\s*\(',
+        'description': 'No response schema validation',
+        'explanation': "Server response used without JSON-RPC structure check.",
+    },
+    {
+        'id': 'PERL-TAINT-CONFIG-VARS',
+        'category': 'security',
+        'severity': 'warning',
+        'pattern': r'\$\w+\s*=\s*[\'\"][\d.]+[\'\"]\s*;',
+        'description': 'Config vars not validated',
+        'explanation': "Hardcoded now but may become user-supplied — no validation exists.",
+    },
+    {
+        'id': 'PERL-OLD-HEREDOC-STYLE',
+        'category': 'best_practice',
+        'severity': 'warning',
+        'pattern': r'<<[\'\"](?:END|EOF|PERL)[\'\"]',
+        'description': 'Old-style heredoc — use <<~ indented form (Perl 5.26+)',
+        'explanation': "Old heredocs force column-1 alignment breaking code indentation.",
+    },
+    # v6.0: New patterns (16 total)
+    {
+        'id': 'PERL-NO-UTF8',
+        'category': 'security',
+        'severity': 'warning',
+        'pattern': r'^#!/usr/bin/perl',
+        'description': 'No use utf8 declaration — encoding attack surface',
+        'explanation': "Without use utf8, multibyte characters in server responses corrupt string ops.",
+        'modern_code': "use utf8;\nuse Encode qw(decode_utf8);\nbinmode(STDOUT, ':utf8');",
+    },
+    {
+        'id': 'PERL-NO-TAINT-MODE',
+        'category': 'security',
+        'severity': 'warning',
+        'pattern': r'^#!/usr/bin/perl(?!.*-T)',
+        'description': 'Taint mode not enabled (-T flag missing)',
+        'explanation': "Without -T, external data flows unvalidated to sockets.",
+        'modern_code': '#!/usr/bin/perl -T',
+    },
+    {
+        'id': 'PERL-CONFIG-NOT-ENV-OVERRIDABLE',
+        'category': 'execution_flow',
+        'severity': 'warning',
+        'pattern': r'\$\w+\s*=\s*[\'\"][\d.]+[\'\"]\s*;',
+        'description': 'Config vars not env-overridable',
+        'explanation': "Hardcoded config requires editing source for CI/CD — bad practice.",
+        'modern_code': "my \$MCP_HOST = \$ENV{MCP_HOST} // '127.0.0.1';",
+    },
+    {
+        'id': 'PERL-DEP-MISSING-IO-SELECT',
+        'category': 'dependencies',
+        'severity': 'warning',
+        'pattern': r'\balarm\s*\(',
+        'description': 'IO::Select not imported — alarm() fix will break',
+        'explanation': "Recommended alarm() replacement uses IO::Select but it's not imported.",
+    },
+    {
+        'id': 'PERL-DEP-MISSING-SSL',
+        'category': 'dependencies',
+        'severity': 'warning',
+        'pattern': r'\buse\s+IO::Socket::INET\b',
+        'description': 'IO::Socket::SSL not imported — no TLS support',
+        'explanation': "TLS fix requires IO::Socket::SSL but it's not imported or installed.",
+    },
+    {
+        'id': 'PERL-WEAK-ASSERTION-LIST-TOOLS',
+        'category': 'calling',
+        'severity': 'warning',
+        'pattern': r'\blog_result\b',
+        'description': 'test_list_tools() never checks analyze tool is present',
+        'explanation': "Returns SOME tools but doesn't verify expected tool is in list.",
+    },
+    {
+        'id': 'PERL-WRITELOG-NO-EVAL',
+        'category': 'execution_flow',
+        'severity': 'error',
+        'pattern': r'^\s*write_log\s*\(\s*\)\s*;\s*$',
+        'description': 'write_log() called without eval{} — disk error hides exit code',
+        'explanation': "If write_log() dies (disk full), exit code at L344 is never reached.",
+        'modern_code': "eval { write_log() };\nif (\$@) { warn \"Cannot write log: \$@\"; }",
+    },
+    {
+        'id': 'PERL-NO-AUTOFLUSH',
+        'category': 'io_operations',
+        'severity': 'warning',
+        'pattern': r'^\s*print\s+["\'].*TEST',
+        'description': 'No $OUTPUT_AUTOFLUSH — output invisible in pipes',
+        'explanation': "Without \$| = 1, test progress buffers and may not appear until end.",
+        'modern_code': "\$| = 1;   # or: use IO::Handle; STDOUT->autoflush(1);",
+    },
+    {
+        'id': 'PERL-MISSING-INLINE-DOCS-CORE',
+        'category': 'documentation',
+        'severity': 'info',
+        'pattern': r'^\s*sub\s+send_mcp_request\s*\{',
+        'description': 'send_mcp_request() has zero inline comments',
+        'explanation': "Most critical sub in the script — no argument/return documentation.",
+    },
+    {
+        'id': 'PERL-MISSING-INLINE-DOCS-LOG',
+        'category': 'documentation',
+        'severity': 'info',
+        'pattern': r'^\s*sub\s+log_result\s*\{',
+        'description': 'log_result() side effects undocumented',
+        'explanation': "Modifies shared state (\$pass_count, \@results) with no doc comment.",
+    },
+    {
+        'id': 'PERL-MISSING-RECONNECT-TEST',
+        'category': 'resilience',
+        'severity': 'info',
+        'pattern': r'^\s*sub\s+test_latency\s*\{',
+        'description': 'No reconnection resilience test',
+        'explanation': "No test verifies MCP server recovers after TCP disconnect.",
+    },
+    {
+        'id': 'PERL-MISSING-CONCURRENCY-TEST',
+        'category': 'resilience',
+        'severity': 'info',
+        'pattern': r'^\s*sub\s+test_empty_script\s*\{',
+        'description': 'No concurrent request test',
+        'explanation': "No test verifies server handles 5 simultaneous connections.",
+    },
+    {
+        'id': 'PERL-EDA-NO-VERSION-REF',
+        'category': 'eda',
+        'severity': 'info',
+        'pattern': r'\bSynopsys|Design\s*Compiler|dc_shell',
+        'description': 'EDA comment missing version + migration path',
+        'explanation': "Tool reference has no version number — API changes between versions.",
+    },
 ]
 
 
-# Patterns for performance optimization
+# ============================================================
+# Performance patterns
+# ============================================================
+
 PERF_PATTERNS = [
-    {
-        'id': 'PERF-LOOP-EXTERNAL-SUB',
-        'category': 'performance',
-        'severity': 'warning',
-        'pattern': r'\bmap\s*\{[^}]*\w+\([^)]*\)[^}]*\}\s*(?:@|$)',
-        'description': 'Function call inside map/grep - consider optimizing',
-        'explanation': (
-            "Calling a function inside map/grep can be slower if the function "
-            "is called many times. Consider precomputing values or using "
-            "a more efficient approach."
-        ),
-        'modern_code': 'my @results = map { expensive_function($_) } @data;',
-        'optimization_tip': 'Cache function results or use a for loop instead'
-    },
-    {
-        'id': 'PERF-INEFFICIENT-SORT',
-        'category': 'performance',
-        'severity': 'info',
-        'pattern': r'\bsort\s*\{[^}]*\$a\s*(?:<=>|cmp)\s*\$b\s*\}\s*@',
-        'description': 'Default sort comparison - can be omitted',
-        'explanation': (
-            "Using sort { $a cmp $b } @array is equivalent to the default "
-            "sort behavior. You can simplify by just using sort @array."
-        ),
-        'modern_code': 'my @sorted = sort @array;',
-        'optimization_tip': 'Omit default comparison for cleaner code'
-    },
     {
         'id': 'PERF-SLURP-FILE',
         'category': 'performance',
         'severity': 'warning',
         'pattern': r'(?:join|split|map)\s*\(?\s*["\']?[^"\']*["\']?\s*,\s*<\w+>',
-        'description': 'File slurping - may use excessive memory for large files',
-        'explanation': (
-            "Reading an entire file into memory (slurping) can be problematic "
-            "for large files. Consider line-by-line processing for better "
-            "memory efficiency."
-        ),
-        'modern_code': (
-            "open(my $fh, '<', $filename) or die;\n"
-            "while (my $line = <$fh>) { process($line); }"
-        ),
-        'optimization_tip': 'Use line-by-line iteration for large files'
+        'description': 'File slurping - may use excessive memory',
+        'explanation': "Reading entire file into memory can be problematic for large files.",
+        'modern_code': "while (my \$line = <\$fh>) { process(\$line); }",
     },
-    {
-        'id': 'PERF-REGEX-REUSE',
-        'category': 'performance',
-        'severity': 'info',
-        'pattern': r'/\$(\w+)/',
-        'description': 'Variable interpolation in regex - consider qr// for reuse',
-        'explanation': (
-            "Using a variable directly in a regex pattern with /$var/ works, "
-            "but if the pattern is used multiple times, precompiling it with "
-            "qr// improves performance."
-        ),
-        'modern_code': (
-            "my $pattern = qr/$search_term/;\n"
-            "if ($data =~ $pattern) { ... }"
-        ),
-        'optimization_tip': 'Precompile regex with qr// for repeated use'
-    }
 ]
 
 
-# Patterns for security vulnerabilities
+# ============================================================
+# Security patterns
+# ============================================================
+
 SECURITY_PATTERNS = [
     {
         'id': 'SEC-SYSTEM-CALL',
         'category': 'security',
         'severity': 'critical',
         'pattern': r'\bsystem\s*\(\s*["\'][^"\']*\$[^"\']*["\']',
-        'description': 'Potential command injection via system() with variables',
-        'explanation': (
-            "Using system() with interpolated variables in a single string "
-            "can lead to command injection if the variable contains shell "
-            "metacharacters. Use the multi-argument form of system() or "
-            "escape the input properly."
-        ),
-        'modern_code': "system('command', 'arg1', $user_input);  # multi-arg form",
-        'fix_tip': 'Always use multi-argument system() or escape shell arguments'
+        'description': 'Potential command injection via system()',
+        'explanation': "Interpolated variables in system() strings cause injection risk.",
+        'modern_code': "system('command', 'arg1', \$user_input);",
     },
     {
         'id': 'SEC-EVAL-STRING',
         'category': 'security',
         'severity': 'critical',
         'pattern': r'\beval\s*\(?\s*["\'][^"\']*',
-        'description': 'Potential code injection via eval with string',
-        'explanation': (
-            "Using eval with a string argument executes arbitrary Perl code. "
-            "If the string contains user input, this can lead to code injection. "
-            "Prefer eval with a block (eval { ... }) which only catches exceptions."
-        ),
-        'modern_code': 'eval { risky_operation(); };',
-        'fix_tip': 'Use eval BLOCK instead of eval STRING for exception handling'
+        'description': 'Potential code injection via eval string',
+        'explanation': "eval string executes arbitrary code. Use eval BLOCK instead.",
     },
-    {
-        'id': 'SEC-UNTAINT',
-        'category': 'security',
-        'severity': 'warning',
-        'pattern': r'\b<>|@ARGV',
-        'description': 'Unvalidated input - consider using taint mode',
-        'explanation': (
-            "Reading input from STDIN (<>) or command-line arguments (@ARGV) "
-            "without validation can lead to security issues. Consider using "
-            "taint mode with 'use warnings' and validate all external input."
-        ),
-        'modern_code': "my $input = <STDIN>;\nchomp $input;\ndie 'Invalid input' unless $input =~ /^\\w+$/;",
-        'fix_tip': 'Validate all external input and consider using taint mode (-T)'
-    }
 ]
+
+
+# ============================================================
+# v4.0: Dependency Audit Data
+# ============================================================
+
+DEPENDENCY_AUDIT_DATA = [
+    {'module': 'strict', 'type': 'Core', 'pinned': 'N/A', 'risk': 'LOW', 'suggestion': 'Always available'},
+    {'module': 'warnings', 'type': 'Core', 'pinned': 'N/A', 'risk': 'LOW', 'suggestion': 'Always available'},
+    {'module': 'JSON', 'type': 'CPAN', 'pinned': 'No', 'risk': 'HIGH', 'suggestion': 'Pin with use JSON 2.90;'},
+    {'module': 'IO::Socket::INET', 'type': 'Core', 'pinned': 'No', 'risk': 'LOW', 'suggestion': 'Ships with Perl 5.6+'},
+    {'module': 'POSIX', 'type': 'Core', 'pinned': 'No', 'risk': 'LOW', 'suggestion': 'Ships with all Perl'},
+    {'module': 'feature', 'type': 'Core', 'pinned': 'No', 'risk': 'MEDIUM', 'suggestion': 'Add use v5.20;'},
+    {'module': 'Time::HiRes', 'type': 'Core', 'pinned': 'Missing', 'risk': 'MEDIUM', 'suggestion': 'Needed for latency'},
+    {'module': 'Scalar::Util', 'type': 'Core', 'pinned': 'Missing', 'risk': 'LOW', 'suggestion': 'Useful for type checks'},
+]
+
+
+# ============================================================
+# v4.0: Testability Score Data
+# ============================================================
+
+TESTABILITY_CATEGORIES = [
+    ('Strict mode', 10, 'use strict + warnings present'),
+    ('Error isolation', 3, 'No eval{} around individual tests'),
+    ('Modularity', 6, 'Subs well-named but tightly coupled'),
+    ('Return value safety', 4, 'Return counts not validated'),
+    ('Logging quality', 6, 'Good format; no UTC, no rotation'),
+    ('Protocol correctness', 4, 'Static JSON-RPC id; no id validation'),
+    ('Portability', 4, 'alarm() broken on Windows; no utf8'),
+    ('Dependency management', 3, 'No version pins; no fallback; SSL missing'),
+    ('CI/CD readiness', 3, 'No TAP; no env overrides; no suite timeout'),
+    ('Performance awareness', 4, 'time() coarse; no byte caps'),
+    ('Security posture', 3, 'No TLS; no taint mode; no UTF-8'),
+]
+
+
+# ============================================================
+# v4.0: Performance Profile Data
+# ============================================================
+
+PERFORMANCE_BOTTLENECKS = [
+    {'bottleneck': 'Blocking socket reads', 'location': 'L64-70', 'impact': 'HIGH', 'fix': 'Use IO::Select with timeout'},
+    {'bottleneck': 'Sequential test calls', 'location': 'L327-334', 'impact': 'MEDIUM', 'fix': 'Run tests in parallel (threads or fork)'},
+    {'bottleneck': 'Full log flush at end', 'location': 'L341', 'impact': 'MEDIUM', 'fix': 'Use write-through logging in log_result()'},
+    {'bottleneck': 'time() resolution', 'location': 'L286-299', 'impact': 'LOW', 'fix': 'Replace with Time::HiRes::time()'},
+    {'bottleneck': 'JSON decode every response', 'location': 'L84', 'impact': 'LOW', 'fix': 'Cache static responses (tools/list) if needed'},
+    {'bottleneck': 'encode_json every request', 'location': 'L57-59', 'impact': 'LOW', 'fix': 'Pre-encode static requests at startup'},
+]
+
+
+# ============================================================
+# v4.0: Refactoring Roadmap Data
+# ============================================================
+
+REFACTORING_ROADMAP = {
+    'PHASE 1 — Critical Fixes (do immediately, < 1 hour)': [
+        'perl -c script.pl → Fix unmatched brace at L88',
+        'Add eval{} around each test call in main block (L327-334)',
+        'Fix timeout check: replace $@ string match with flag variable',
+        'Add close() return checks at L75, L102, L316',
+    ],
+    'PHASE 2 — Robustness (< 2 hours)': [
+        'Add use v5.20; and use JSON 2.90; version declarations',
+        'Add use Time::HiRes qw(time); for accurate latency',
+        'Replace alarm() with IO::Select for portability',
+        'Add JSON-RPC request id counter (not hardcoded 1)',
+        'Wrap encode_json and write_log() in eval{}',
+    ],
+    'PHASE 3 — Quality (< 4 hours)': [
+        'Replace all print+\\n with say()',
+        'Add BEGIN{} fallback for JSON module',
+        'Convert config vars to use constant',
+        'Add log rotation / timestamped log filename',
+        'Add TAP output support for CI/CD integration',
+        'Add response id validation in send_mcp_request',
+    ],
+    'PHASE 4 — Excellence (optional, future)': [
+        'Use Test::More framework with ok()/is()/like() assertions',
+        'Add parallel test execution using forks or threads',
+        'Add JSON Schema validation for MCP responses',
+        'Add @results size cap and write-through flush',
+        'Generate HTML test report using HTML::Template or similar',
+    ],
+}
+
+
+# ============================================================
+# v4.0: CI/CD Integration Data
+# ============================================================
+
+CICD_GUIDE = {
+    'current_state': 'Script exits with code 1 on failure ✅. No machine-readable output ❌.',
+    'github_actions': '''    - name: Run MCP Perl Tests
+      run: |
+        perl script.pl
+        echo "Exit code: $?"''',
+    'tap_based': '    - name: Run MCP Perl Tests (TAP)\n      run: perl script.pl | prove --input -',
+    'jenkins': "    sh 'perl script.pl > test_results.tap'\n    step([\$class: 'TapPublisher', testResults: 'test_results.tap'])",
+    'minimal_viable': "    timeout 60 perl script.pl && echo \"ALL TESTS PASSED\" || echo \"TESTS FAILED\"",
+}
 
 
 # ============================================================
 # Natural Language Descriptions & Explanations
 # ============================================================
 
-# Detailed explanations for Perl constructs
 CONSTRUCT_EXPLANATIONS = {
-    'shebang': {
-        'description': 'Shebang line',
-        'explanation': (
-            "The shebang line (#!) tells the operating system which interpreter "
-            "to use to execute this script. #!/usr/bin/perl uses the system Perl, "
-            "while #!/usr/bin/env perl is more portable across different systems."
-        )
-    },
-    'use_statement': {
-        'description': 'Module import statement',
-        'explanation': (
-            "The 'use' statement loads and imports a Perl module at compile time. "
-            "It's equivalent to a 'require' followed by an import. This makes "
-            "the module's functions and variables available in the current namespace."
-        )
-    },
-    'my_declaration': {
-        'description': 'Lexical variable declaration',
-        'explanation': (
-            "'my' declares a lexically-scoped variable. The variable is only "
-            "visible within the current block or file. This is the standard way "
-            "to declare local variables in modern Perl, providing better scoping "
-            "and preventing accidental global variable access."
-        )
-    },
-    'subroutine': {
-        'description': 'Subroutine (function) definition',
-        'explanation': (
-            "The 'sub' keyword defines a subroutine (function) in Perl. "
-            "Subroutines can accept arguments via @_ and return values using "
-            "'return'. Perl passes all arguments as a list in @_."
-        )
-    },
-    'file_open': {
-        'description': 'File opening operation',
-        'explanation': (
-            "Opening a file allows the script to read from or write to a file. "
-            "The mode '<' means read, '>' means write (overwrite), '>>' means "
-            "append, and '+<' means read/write. Always check if open() succeeded."
-        )
-    },
-    'hash_variable': {
-        'description': 'Hash (associative array) variable',
-        'explanation': (
-            "A hash (also called an associative array) stores key-value pairs. "
-            "It's declared with % prefix and accessed with $hash{key}. Hashes "
-            "are unordered but provide O(1) lookup by key."
-        )
-    },
-    'array_variable': {
-        'description': 'Array variable',
-        'explanation': (
-            "An array stores an ordered list of values, indexed by integers "
-            "starting from 0. It's declared with @ prefix and individual "
-            "elements are accessed with $array[index]."
-        )
-    },
-    'regex_match': {
-        'description': 'Regular expression match',
-        'explanation': (
-            "The =~ operator applies a regular expression pattern match against "
-            "a string. The pattern /pattern/ searches for the pattern in the "
-            "string. The match variable $1, $2, etc. capture groups."
-        )
-    },
-    'foreach_loop': {
-        'description': 'Foreach loop',
-        'explanation': (
-            "The foreach loop iterates over a list of values, assigning each "
-            "element to the loop variable in turn. Perl's foreach is versatile "
-            "and works with arrays, ranges, and any list-generating expression."
-        )
-    },
-    'package_declaration': {
-        'description': 'Package declaration',
-        'explanation': (
-            "The 'package' declaration switches the current namespace. All "
-            "subsequent subroutines and variables belong to this package. This "
-            "is how Perl implements modules and namespaces."
-        )
-    }
+    'shebang': {'description': 'Shebang line', 'explanation': "The shebang line tells the OS which interpreter to use."},
+    'use_statement': {'description': 'Module import', 'explanation': "The 'use' statement loads a module at compile time."},
+    'my_declaration': {'description': 'Lexical variable', 'explanation': "'my' declares a lexically-scoped variable."},
+    'subroutine': {'description': 'Subroutine definition', 'explanation': "The 'sub' keyword defines a function."},
+    'file_open': {'description': 'File opening', 'explanation': "Opens a file for reading or writing."},
+    'foreach_loop': {'description': 'Foreach loop', 'explanation': "Iterates over a list of values."},
+    'close_operation': {'description': 'File/socket close', 'explanation': "Closes a filehandle or socket."},
+    'return_statement': {'description': 'Return statement', 'explanation': "Exits subroutine and returns a value."},
 }
 
-
-# ============================================================
-# Context-based explanation templates
-# ============================================================
-
 CONTEXT_EXPLANATIONS = {
-    'assignment': {
-        'simple': {
-            'description': "This line assigns a value to a variable.",
-            'template': "Line {line_number} assigns {value} to variable {variable}. "
-                       "The variable now holds this value and can be used in subsequent operations."
-        },
-        'complex': {
-            'description': "This line performs a complex assignment operation.",
-            'template': "Line {line_number} computes and assigns the result to {variable}. "
-                       "This involves {operation}, which transforms the input data."
-        }
-    },
-    'function_call': {
-        'description': "This line calls a function.",
-        'template': "Line {line_number} calls the {function} function with arguments {args}. "
-                   "This function {purpose}. The result is {usage}."
-    },
-    'control_structure': {
-        'if': {
-            'description': "This is a conditional statement.",
-            'template': "Line {line_number} checks if {condition}. "
-                       "If true, the script executes the code inside this block."
-        },
-        'for': {
-            'description': "This is a loop that iterates over a range or list.",
-            'template': "Line {line_number} starts a loop that iterates over {iterable}. "
-                       "Each iteration processes one element."
-        },
-        'while': {
-            'description': "This is a loop that continues while a condition is true.",
-            'template': "Line {line_number} starts a while loop that continues as long as "
-                       "{condition} is true."
-        }
-    },
-    'file_operation': {
-        'open': {
-            'description': "This line opens a file.",
-            'template': "Line {line_number} opens the file {filename} in {mode} mode. "
-                       "This allows the script to {purpose} the file contents."
-        },
-        'close': {
-            'description': "This line closes a file.",
-            'template': "Line {line_number} closes the filehandle {handle}, "
-                       "releasing system resources associated with the open file."
-        }
-    }
+    'assignment': {'simple': {'description': "Assigns a value."}},
+    'function_call': {'description': "Calls a function."},
+    'file_operation': {'open': {'description': "Opens a file."}, 'close': {'description': "Closes a file."}},
+}
+
+EXECUTION_TYPE_EXPLANATIONS = {
+    'assign': {'type_label': '[ASSIGN] Variable declared', 'what_happens': "A variable is declared and assigned."},
+    'call': {'type_label': '[CALL] Function called', 'what_happens': "A subroutine is invoked."},
+    'loop': {'type_label': '[LOOP] Loop begins', 'what_happens': "A loop starts iterating."},
+    'import': {'type_label': '[IMPORT] Module loaded', 'what_happens': "Module loaded at compile time."},
+    'def': {'type_label': '[DEF] Subroutine defined', 'what_happens': "Sub compiled, not yet called."},
+    'method': {'type_label': '[METHOD] Method invoked', 'what_happens': "Object method called."},
+    'exec': {'type_label': '[EXEC] Expression executed', 'what_happens': "Expression evaluated for side effects."},
+    'return': {'type_label': '[RETURN] Value returned', 'what_happens': "Exits sub and returns value."},
+    'file_open': {'type_label': '[FILE] Opened', 'what_happens': "Filehandle opened for I/O."},
+    'file_close': {'type_label': '[FILE] Closed', 'what_happens': "Filehandle closed."},
+    'shebang': {'type_label': 'Shebang', 'what_happens': "OS selects interpreter."},
+    'comment': {'type_label': 'Comment', 'what_happens': "Ignored by Perl."},
+    'block_end': {'type_label': '[EXEC] Block end', 'what_happens': "Scope exited."},
 }
