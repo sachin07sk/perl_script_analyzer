@@ -1,0 +1,1156 @@
+================================================================================
+                    PERL SCRIPT ANALYSIS REPORT  — DEEP ENHANCED
+================================================================================
+
+  Script      : mpc_perl_analyzer\script.pl
+  Analyzed On : 2026-05-15 23:26:24
+  Enhanced On : 2026-05-27
+  Analyzer Ver: 3.0.0  (Deep Line-by-Line Execution Edition)
+  Total Lines : 344
+  File Size   : 10,187 bytes
+  Encoding    : UTF-8
+
+================================================================================
+1. EXECUTIVE SUMMARY
+================================================================================
+
+  Script Type       : MCP Server Test Suite (Perl)
+  Perl Version      : Unknown (no version declaration found)
+  Total Issues      : 32         ← Updated (was 24; +8 new execution-level issues)
+  ├─ Critical       : 0
+  ├─ Errors         : 2          ← Updated (+1: new execution flow error)
+  ├─ Warnings       : 7          ← Updated (+3: new loop/call/assign warnings)
+  └─ Info           : 23         ← Updated (+4: new clarity suggestions)
+
+  Risk Score        : 5 / 10  (Medium)
+  Modules Used      : 8
+  Subroutines       : 12
+  Variables         : 27
+  Best Practices    : Good (strict + warnings enabled)
+
+  New Issues Added (v3.0 deep analysis):
+    - assignment     : 2   ← variable assignment clarity issues
+    - loop           : 2   ← loop construct improvements
+    - calling        : 2   ← function/method call clarity
+    - file_calling   : 1   ← file operation call issues
+    - execution_flow : 1   ← inline command execution issue
+
+================================================================================
+2. EXECUTION FLOW MAP
+================================================================================
+
+  This section shows HOW the script executes, line by line, from entry to exit.
+  Understanding this flow is essential for debugging and modernization.
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │  EXECUTION ENTRY POINT                                                  │
+  │  Line 1   → Shebang sets interpreter                                    │
+  │  Lines 2–6 → Module imports (compile-time, before any code runs)         │
+  │  Lines 14–23 → Global variable assignments (run at startup)             │
+  │  Lines 28–317 → Subroutine DEFINITIONS (compiled, not yet executed)     │
+  │  Lines 322–344 → MAIN BLOCK (actual runtime execution begins here)      │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  Runtime Call Chain:
+    main block (L322–344)
+    ├── test_connectivity()           L327
+    │    ├── IO::Socket::INET->new()  L95   [METHOD]
+    │    ├── close($socket)           L102  [FILE]
+    │    └── log_result()             L103  [CALL]
+    │
+    ├── test_handshake()              L328
+    │    └── send_mcp_request()       L114
+    │         ├── IO::Socket::INET->new() L95   [METHOD]
+    │         ├── encode_json()        L55   [CALL]
+    │         ├── print $socket         L62   [FILE]
+    │         ├── while(<$socket>)     L68   [LOOP]
+    │         ├── close($socket)       L75   [FILE]
+    │         ├── decode_json()        L82   [CALL]
+    │         └── return               L87   [RETURN]
+    │
+    ├── test_list_tools()             L329
+    │    └── send_mcp_request()       L136
+    │         └── foreach (@tools)    L144  [LOOP]
+    │
+    ├── test_analyze_modern_script()  L330
+    │    └── send_mcp_request()       L158
+    │
+    ├── test_detect_old_patterns()    L331
+    │    └── send_mcp_request()       L193
+    │
+    ├── test_malformed_script()       L332
+    │    └── send_mcp_request()       L237
+    │
+    ├── test_empty_script()           L333
+    │    └── send_mcp_request()       L263
+    │
+    ├── test_latency()                L334
+    │    └── send_mcp_request()       L286
+    │
+    └── write_log()                   L341
+         ├── open(my $fh, ...)        L306  [FILE]
+         ├── foreach @results         L312  [LOOP]
+         └── close($fh)               L316  [FILE]
+
+  NOTE: Every test sub also calls log_result() internally (at least once),
+        which in turn uses strftime() and print to STDOUT.
+
+================================================================================
+3. ALL ISSUES FOUND  (Original + New Execution-Level Issues)
+================================================================================
+
+  ── ERRORS ────────────────────────────────────────────────────────────────────
+
+  [ERROR] Unmatched closing brace
+  ID      : PERL-UNMATCHED-BRACE
+  Line    : 88
+  Category: syntax
+  Execution Impact:
+    This is a COMPILE-TIME error. Perl will refuse to run the entire script
+    if this brace is truly unmatched. The subroutine send_mcp_request (L41–88)
+    may be incorrectly scoped, causing all 8 test subroutines that call it
+    to fail at runtime with "Undefined subroutine" errors.
+  Why this is an issue:
+    Extra closing brace can prematurely end a subroutine or block scope,
+    breaking the entire execution chain.
+  Suggested fix:
+    Use Perl::Tidy or an editor with brace matching. Trace from 'sub
+    send_mcp_request {' (L41) to its correct closing brace.
+  Recommended modern code:
+    perl -c script.pl    # Run syntax check before executing
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [ERROR] Subroutine return value used without list context check         ← NEW
+  ID      : PERL-UNCHECKED-RETURN-CONTEXT
+  Line    : 95–106 (test_connectivity), and similar in all test subs
+  Category: execution_flow
+  Execution Impact:
+    send_mcp_request() returns a 2-element list: ($ok, $response).
+    If the subroutine ever returns a single scalar (e.g. on early die/warn),
+    the assignment:
+        my ($ok, $resp) = send_mcp_request(...);
+    will silently assign undef to $resp. The test will then fail to decode
+    the JSON response, but the root cause (wrong return type) will be hidden.
+  Why this is an issue:
+    No check is made that send_mcp_request actually returned 2 values. In
+    Perl, list assignment from a scalar silently pads with undefs.
+  Suggested fix:
+    Validate the return count or die explicitly on unexpected return shapes.
+  Recommended modern code:
+    my @result = send_mcp_request($method, $params);
+    die "Unexpected return from send_mcp_request" unless @result == 2;
+    my ($ok, $resp) = @result;
+
+  ── WARNINGS ──────────────────────────────────────────────────────────────────
+
+  [WARNING] Old-style 2-argument open with bareword filehandle
+  ID      : PERL-OLD-OPEN
+  Line    : 203
+  Category: file_io
+  Execution Impact:
+    Inside the embedded heredoc (old Perl test script). At RUNTIME, this
+    open() will pollute the global symbol table with the FILE glob. If the
+    outer script also uses FILE somewhere, they will clash silently.
+  Suggested fix:
+    open(my $fh, '>', 'out.txt') or die "Cannot open 'out.txt': $!";
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [WARNING] close() return value not checked
+  ID      : PERL-UNCHECKED-CLOSE
+  Lines   : 75, 102, 316
+  Category: file_io
+  Execution Impact:
+    At runtime, if the TCP socket was interrupted (network drop, server crash),
+    close($socket) will fail silently. The test will record PASS even though
+    the data may not have been fully transmitted. This is a false positive risk
+    in your test harness.
+  Recommended modern code:
+    close($socket) or warn "Failed to close socket: $!";
+    close($fh)     or warn "Failed to close log '$LOG_FILE': $!";
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [WARNING] Loop iterates tools list without bounds check                 ← NEW
+  ID      : PERL-LOOP-NO-BOUNDS
+  Line    : 136–150 (test_list_tools)
+  Category: loop
+  Execution Impact:
+    The foreach loop iterates over the tools array returned by the server.
+    If the server returns an unexpectedly large list (e.g. 10,000 tools due
+    to a bug), the loop will run indefinitely, consuming CPU and memory.
+    There is no maximum iteration guard or early-exit condition.
+  Suggested fix:
+    Add a loop limit or slice the result to a safe maximum.
+  Recommended modern code:
+    my @tools = @{ $resp->{result}{tools} // [] };
+    my $max   = 100;    # safety cap
+    my $count = 0;
+    for my $tool (@tools) {
+        last if ++$count > $max;
+        log_result("tool_found", "INFO", $tool->{name});
+    }
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [WARNING] Socket read loop has no maximum byte limit                    ← NEW
+  ID      : PERL-UNBOUNDED-SOCKET-READ
+  Line    : 64–70 (send_mcp_request body)
+  Category: loop / file_calling
+  Execution Impact:
+    The while(<$socket>) loop reads from the TCP socket until EOF or
+    disconnect. A malicious or buggy MCP server could stream unlimited data,
+    causing memory exhaustion. There is no byte counter, line limit, or
+    size cap on the read buffer.
+  Suggested fix:
+    Cap the read buffer size inside the loop.
+  Recommended modern code:
+    my $response = '';
+    my $max_bytes = 1_048_576;    # 1 MB cap
+    while (my $chunk = <$socket>) {
+        $response .= $chunk;
+        die "Response too large" if length($response) > $max_bytes;
+    }
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [WARNING] Subroutine called but return value is fully discarded         ← NEW
+  ID      : PERL-VOID-CALL
+  Line    : 327–334 (main block — all 8 test calls)
+  Category: calling
+  Execution Impact:
+    Each test sub (test_connectivity, test_handshake, etc.) is called in
+    void context. If any test sub were refactored to return a status, the
+    caller would silently ignore it. Additionally, if a test sub dies
+    unexpectedly, it is NOT wrapped in eval{}, so one crash kills ALL
+    remaining tests.
+  Suggested fix:
+    Wrap each test call in eval{} for isolation and capture return values.
+  Recommended modern code:
+    for my $test (
+        \&test_connectivity,
+        \&test_handshake,
+        \&test_list_tools,
+        # ... etc
+    ) {
+        eval { $test->() };
+        if ($@) {
+            log_result("EXCEPTION", "FAIL", "Test died: $@");
+        }
+    }
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [WARNING] Method call chaining without intermediate check               ← NEW
+  ID      : PERL-UNCHECKED-METHOD-CHAIN
+  Lines   : 95–101 (IO::Socket::INET->new), similar in all test subs
+  Category: calling / methods
+  Execution Impact:
+    IO::Socket::INET->new() returns undef on failure. The script does check
+    `unless ($socket)` BUT only in send_mcp_request(). In test_connectivity
+    the socket is created AGAIN directly and the check is not as defensive.
+    If new() returns undef and is immediately used in a method call (e.g.
+    $socket->send()), it will cause a fatal "Can't call method on undef" error
+    at runtime with no clean error message.
+  Suggested fix:
+    Always assign the result of ->new() to a variable and check it before
+    any further method calls.
+  Recommended modern code:
+    my $socket = IO::Socket::INET->new(%args)
+        or die "Cannot connect: $!";
+    # Only call methods after confirming $socket is defined
+
+  ── INFO ──────────────────────────────────────────────────────────────────────
+
+  [INFO] 18x print with \n — use say() throughout
+  ID      : PERL-MODERN-SAY
+  Lines   : 33, 94, 113, 135, 156, 191, 235, 261, 284, 322–325, 337–339, 342
+  Category: io_operations
+  Execution Impact:
+    No runtime failure, but say() (Perl 5.10+) is cleaner and less error-prone
+    since \n is automatically appended. Missing \n in a print statement is a
+    common silent bug.
+  Recommended modern code:
+    use feature 'say';
+    say "your text here";      # replaces print "your text here\n";
+    say $fh "log line";        # works with filehandle too
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [INFO] Missing Perl version declaration
+  ID      : PERL-MISSING-VERSION
+  Line    : 1
+  Category: best_practice
+  Execution Impact:
+    If deployed on Perl 5.8 (still found on some legacy RHEL systems), the
+    script will fail silently because 'use feature' and say() are 5.10+ only,
+    and IO::Socket::INET timeout argument behavior differs across versions.
+  Recommended modern code:
+    use v5.20;   # ensures minimum version at compile time
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [INFO] Variable assignment uses hardcoded string concatenation          ← NEW
+  ID      : PERL-HARDCODED-CONCAT-ASSIGN
+  Line    : 31
+  Category: assignment
+  Execution Impact:
+    The log line is built with string interpolation:
+        my $line = "[$timestamp] [$status] $test_name => $detail";
+    This is readable but if $detail contains special characters (newlines,
+    tabs, Unicode), the log output will be malformed. No sanitization is
+    applied before assignment.
+  Suggested fix:
+    Sanitize $detail before assigning to $line, or use sprintf for structured
+    formatting.
+  Recommended modern code:
+    $detail =~ s/[\r\n\t]+/ /g;    # strip control chars
+    my $line = sprintf("[%s] [%-4s] %s => %s", $timestamp, $status,
+                       $test_name, $detail);
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [INFO] Counter variables incremented without atomic safety               ← NEW
+  ID      : PERL-NON-ATOMIC-COUNTER
+  Lines   : 21–23 ($pass_count, $fail_count)
+  Category: assignment
+  Execution Impact:
+    $pass_count++ and $fail_count++ in log_result() are not atomic. In a
+    single-threaded script this is fine. However, if this test suite is
+    ever converted to use threads (threads.pm) or forked workers, both
+    counters will race. Adding a comment or using shared variables is safer.
+  Suggested fix:
+    If threading is ever added, use: use threads::shared; my $pass_count :shared = 0;
+  Note:
+    This is LOW priority for current single-threaded use.
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [INFO] EDA tool command: analyze
+  ID      : PERL-EDA-COMMENT
+  Line    : 153
+  Category: eda
+  Execution Impact:
+    Reference to Synopsys Design Compiler. No runtime impact but signals
+    a migration path to Genus Synthesis Tool.
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [INFO] Eval string comparison is fragile (timeout detection)            ← NEW
+  ID      : PERL-FRAGILE-EVAL-STRING
+  Line    : 77
+  Category: execution_flow
+  Execution Impact:
+    The check `if ($@ eq "timeout\n")` compares the death message string
+    literally. If the signal handler message changes (e.g. "timeout" with
+    a period, or different capitalization), the timeout branch is silently
+    skipped and the empty response is passed to decode_json() — causing a
+    JSON parse error with a misleading error message.
+  Suggested fix:
+    Use a dedicated flag variable instead of comparing $@.
+  Recommended modern code:
+    my $timed_out = 0;
+    local $SIG{ALRM} = sub { $timed_out = 1; die "timeout\n" };
+    alarm($TIMEOUT);
+    ...
+    alarm(0);
+    if ($timed_out) {
+        return (0, "Request timed out after ${TIMEOUT}s");
+    }
+
+================================================================================
+4. LINE-BY-LINE EXPLANATION  (Deep Execution Edition)
+================================================================================
+
+LEGEND:
+  [ASSIGN]  = Variable declared or assigned
+  [CALL]    = Function / method called
+  [LOOP]    = Loop starts, iterates, or exits
+  [FILE]    = File or socket opened, read, written, or closed
+  [METHOD]  = Object method invoked
+  [EXEC]    = Inline command or expression executed
+  [DEF]     = Subroutine defined (not yet called)
+  [IMPORT]  = Module loaded at compile time
+  [RETURN]  = Value returned to caller
+
+----------------------------------------------------------------------
+  Line    1 | #!/usr/bin/perl
+----------------------------------------------------------------------
+  Execution Type : Shebang — OS-level interpreter selection
+  What happens   : The OS kernel reads this line BEFORE Perl runs. It
+                   hands execution to /usr/bin/perl. Perl then begins
+                   compiling the entire script before running line 1.
+  Suggestion     : Add -w flag for warnings at OS level too:
+                   #!/usr/bin/perl -w
+                   Or better: use warnings; inside (already done L3).
+  Issue          : [i INFO] PERL-MISSING-VERSION
+
+----------------------------------------------------------------------
+  Line    2 | use strict;
+----------------------------------------------------------------------
+  Execution Type : [IMPORT] Compile-time pragma
+  What happens   : Loaded at COMPILE TIME before any code runs. Activates
+                   three restrictions: vars (must declare with my/our),
+                   subs (no bareword sub calls), refs (no symbolic refs).
+  Execution note : If any variable later in the file is used without 'my',
+                   the script will REFUSE TO COMPILE and die before L1 runs.
+  Status         : ✅ Good practice. No issues.
+
+----------------------------------------------------------------------
+  Line    3 | use warnings;
+----------------------------------------------------------------------
+  Execution Type : [IMPORT] Compile-time pragma
+  What happens   : Enables diagnostic warnings emitted to STDERR during
+                   execution. Catches: uninitialized value use, numeric
+                   conversions, deprecated functions, redefined subs.
+  Execution note : Does NOT stop execution — warnings are advisory only.
+                   To make warnings fatal: use warnings FATAL => 'all';
+  Status         : ✅ Good practice. No issues.
+
+----------------------------------------------------------------------
+  Line    4 | use JSON;
+----------------------------------------------------------------------
+  Execution Type : [IMPORT] Runtime module load (CPAN)
+  What happens   : Loads JSON.pm from @INC at COMPILE TIME. Exports
+                   encode_json() and decode_json() into current namespace.
+  Execution note : If JSON.pm is not installed, script dies immediately
+                   with "Can't locate JSON.pm in @INC". No graceful fallback.
+  Suggestion     : Add a version requirement for safety:
+                   use JSON 2.0;
+                   Or add a fallback:
+                   eval { require JSON } or die "Install JSON: cpanm JSON\n";
+
+----------------------------------------------------------------------
+  Line    5 | use IO::Socket::INET;
+----------------------------------------------------------------------
+  Execution Type : [IMPORT] Compile-time — Core module
+  What happens   : Loads IO::Socket::INET, providing OO interface to TCP/UDP
+                   sockets. This is a CORE module (ships with Perl 5.6+).
+  Execution note : The ->new() constructor is called later at L95 (runtime).
+                   This line just makes the class available.
+  Status         : ✅ No issues.
+
+----------------------------------------------------------------------
+  Line    6 | use POSIX qw(strftime);
+----------------------------------------------------------------------
+  Execution Type : [IMPORT] Compile-time — selective import
+  What happens   : Loads ONLY strftime() from POSIX module into current
+                   namespace. qw(...) avoids importing the entire POSIX
+                   symbol table (good practice — reduces namespace pollution).
+  Execution note : strftime() is called at L31 inside log_result() at runtime.
+  Status         : ✅ Good selective import. No issues.
+
+----------------------------------------------------------------------
+  Lines 14–17 | my $MCP_HOST = '127.0.0.1'; ...
+----------------------------------------------------------------------
+  Execution Type : [ASSIGN] Lexical variable declarations — run at startup
+  What happens   : Four scalars are declared and assigned at script startup,
+                   BEFORE any subroutine is called. These are lexically scoped
+                   to the file scope (accessible in all subs below).
+  Variables      :
+    $MCP_HOST = '127.0.0.1'          — target server IP
+    $MCP_PORT = 3000                  — target server port
+    $TIMEOUT  = 10                    — socket timeout in seconds
+    $LOG_FILE = 'mcp_test_results.log'— output log file name
+  Suggestion     : These are effectively constants. Use Readonly or 'use
+                   constant' to prevent accidental reassignment:
+                   use constant MCP_HOST => '127.0.0.1';
+                   use constant MCP_PORT => 3000;
+
+----------------------------------------------------------------------
+  Lines 21–23 | my $pass_count = 0; my $fail_count = 0; my @results;
+----------------------------------------------------------------------
+  Execution Type : [ASSIGN] Counter and accumulator initialization
+  What happens   : Two integer counters and one array are declared at
+                   startup. They accumulate state across all test calls.
+  Execution note : These are file-scoped. log_result() modifies them via
+                   closure (since log_result is defined in the same scope).
+  Suggestion     : Make the intent explicit with a comment and/or group
+                   into a state hash for clarity:
+                   my %state = (pass => 0, fail => 0, results => []);
+  Issue          : [i INFO] PERL-NON-ATOMIC-COUNTER (low priority)
+
+----------------------------------------------------------------------
+  Line   28 | sub log_result {
+----------------------------------------------------------------------
+  Execution Type : [DEF] Subroutine definition — compiled, not yet called
+  What happens   : Perl compiles this sub at startup. It is NOT executed
+                   here. First call happens inside test_connectivity (L103).
+  Called by      : Every test sub (8 times minimum per test run)
+  Returns        : Nothing (void context — modifies shared state directly)
+  Suggestion     : Return a value ($line) to make it testable:
+                   return $line;
+
+----------------------------------------------------------------------
+  Lines 29–31 | my ($test_name, $status, $detail) = @_;
+----------------------------------------------------------------------
+  Execution Type : [ASSIGN] Argument unpacking from @_
+  What happens   : @_ contains the arguments passed by the caller. The
+                   list assignment unpacks positionally:
+                     $test_name ← $_[0]
+                     $status    ← $_[1]
+                     $detail    ← $_[2]
+  Execution note : If caller passes fewer than 3 args, the missing ones
+                   are silently set to undef (no error with strict).
+  Suggestion     : Add argument validation:
+                   die "log_result requires 3 args" unless @_ == 3;
+
+----------------------------------------------------------------------
+  Line   31 | my $timestamp = strftime("%Y-%m-%d %H:%M:%S", localtime);
+----------------------------------------------------------------------
+  Execution Type : [ASSIGN] + [CALL] — Function call result assigned
+  What happens   : localtime() returns a 9-element list representing the
+                   current time. strftime() formats it using the format
+                   string and assigns the result string to $timestamp.
+  Execution note : localtime() uses the LOCAL timezone of the OS. If the
+                   server runs in UTC but reports are read in IST (+5:30),
+                   timestamps will show local time not UTC. This can cause
+                   confusion in distributed setups.
+  Suggestion     : Use UTC for log timestamps:
+                   use POSIX qw(strftime gmtime);
+                   my $timestamp = strftime("%Y-%m-%dT%H:%M:%SZ", gmtime);
+
+----------------------------------------------------------------------
+  Line   32 | my $line = "[$timestamp] [$status] $test_name => $detail";
+----------------------------------------------------------------------
+  Execution Type : [ASSIGN] String interpolation and concatenation
+  What happens   : Perl interpolates all four variables into the string
+                   at runtime. The result is a single formatted log line.
+  Execution note : Variable interpolation happens LEFT-TO-RIGHT. If any
+                   variable contains embedded ] or => characters, the log
+                   format will be misread by log parsers.
+  Issue          : [i INFO] PERL-HARDCODED-CONCAT-ASSIGN
+  Suggestion     : Use sprintf for consistent column-aligned output:
+                   my $line = sprintf("[%s] [%-4s] %-30s => %s",
+                       $timestamp, $status, $test_name, $detail);
+
+----------------------------------------------------------------------
+  Line   33 | print "$line\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Stdout output
+  What happens   : Prints $line followed by newline to STDOUT (fd 1).
+                   This is unbuffered by default when STDOUT is a terminal,
+                   but LINE-buffered when piped or redirected.
+  Execution note : If this script is run as: perl script.pl > out.txt
+                   output is buffered and may not appear immediately.
+                   Add: $| = 1; at the top to force flush after every print.
+  Issue          : [i INFO] PERL-MODERN-SAY
+  Suggestion     : Replace with: say $line;
+                   And add: $| = 1; at script start for live output.
+
+----------------------------------------------------------------------
+  Lines 34–35 | if ($status eq 'PASS') { $pass_count++ } else { $fail_count++ }
+----------------------------------------------------------------------
+  Execution Type : [ASSIGN] Conditional counter increment
+  What happens   : String equality check on $status. If 'PASS', increments
+                   $pass_count using post-increment (++). Otherwise increments
+                   $fail_count.
+  Execution note : Post-increment ($x++) returns the OLD value, then adds 1.
+                   Here the return value is discarded so pre/post makes no
+                   difference. However, using pre-increment (++$x) is slightly
+                   more idiomatic when the value isn't used.
+  Suggestion     : Consider a dispatch table for extensibility:
+                   my %counters = (PASS => \$pass_count, FAIL => \$fail_count);
+                   ${ $counters{$status} // \my $dummy }++;
+
+----------------------------------------------------------------------
+  Line   36 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator — closes log_result sub
+  What happens   : Perl exits the subroutine scope. All 'my' variables
+                   declared inside (L29–32) are destroyed.
+  Status         : ✅ No issues.
+
+----------------------------------------------------------------------
+  Line   41 | sub send_mcp_request {
+----------------------------------------------------------------------
+  Execution Type : [DEF] Core helper — compiled at startup, called 8+ times
+  What happens   : Defines the central communication subroutine. Every test
+                   sub calls this. It is the most critical sub in the script.
+  Called by      : All 8 test subroutines
+  Returns        : ($ok, $response_hashref)  — 2-element list
+  Issue          : [! ERROR] PERL-UNMATCHED-BRACE at L88
+
+----------------------------------------------------------------------
+  Lines 42–43 | my ($method, $params) = @_;
+----------------------------------------------------------------------
+  Execution Type : [ASSIGN] Argument unpacking
+  What happens   : Unpacks the 2 caller arguments:
+                     $method ← name of JSON-RPC method (e.g. 'tools/list')
+                     $params ← hashref of parameters
+  Execution note : $params is expected to be a hashref. If caller passes a
+                   plain hash (not a ref), encode_json will fail. No type
+                   check is present.
+  Suggestion     : Add a type guard:
+                   die "params must be a hashref" unless ref($params) eq 'HASH';
+
+----------------------------------------------------------------------
+  Lines 44–52 | my $socket = IO::Socket::INET->new(...)
+----------------------------------------------------------------------
+  Execution Type : [METHOD] Object constructor call
+  What happens   : IO::Socket::INET->new() is a CLASS METHOD call. Perl
+                   looks up 'new' in IO::Socket::INET's symbol table, calls
+                   it with the class name as first argument. The constructor:
+                     1. Creates a TCP socket (syscall: socket())
+                     2. Resolves $MCP_HOST (syscall: getaddrinfo())
+                     3. Connects to $MCP_PORT (syscall: connect())
+                     4. Sets $TIMEOUT via SO_SNDTIMEO / SO_RCVTIMEO
+                   Returns: IO::Socket::INET object (blessed ref), or undef.
+  Execution note : The `unless ($socket)` check at L53 correctly handles
+                   the undef case. However, the error message uses $@ but
+                   socket errors populate $! (errno), not $@.
+  Suggestion     : Use $! in the error message:
+                   unless ($socket) {
+                       return (0, "Cannot connect to $MCP_HOST:$MCP_PORT: $!");
+                   }
+
+----------------------------------------------------------------------
+  Lines 55–62 | my $request = encode_json({...}); print $socket $request."\n";
+----------------------------------------------------------------------
+  Execution Type : [CALL] JSON encoding + [FILE] Socket write
+  What happens   :
+    1. encode_json() serializes the Perl hashref to a JSON string.
+       The hash contains: jsonrpc, id, method, params fields.
+    2. print $socket $request."\n" writes the JSON string to the TCP
+       socket (syscall: write() / send()). The \n acts as a line delimiter
+       for the server's line-based JSON-RPC parser.
+  Execution note : encode_json() can die if the data contains circular
+                   refs or non-serializable values. No eval{} wraps it.
+  Suggestion     : Wrap encode_json in eval:
+                   my $request = eval { encode_json({...}) }
+                       or return (0, "JSON encode failed: $@");
+
+----------------------------------------------------------------------
+  Lines 64–70 | local $SIG{ALRM} = ...; alarm($TIMEOUT); while(<$socket>){...}
+----------------------------------------------------------------------
+  Execution Type : [LOOP] Socket read loop with alarm timeout
+  What happens   :
+    1. local $SIG{ALRM} sets a TEMPORARY signal handler (restored on scope exit).
+    2. alarm($TIMEOUT) schedules a SIGALRM after $TIMEOUT seconds.
+    3. while(<$socket>) reads lines from the socket one at a time.
+       Each iteration: reads until \n, appends to $response.
+    4. When server closes connection, <$socket> returns undef → loop exits.
+    5. alarm(0) cancels the pending alarm.
+  Execution note : This is a BLOCKING read loop. The alarm is the only
+                   protection against hanging forever. If the server sends
+                   data very slowly (1 byte/sec), the loop may run for
+                   $TIMEOUT seconds before the alarm fires.
+  Issue          : [? WARNING] PERL-UNBOUNDED-SOCKET-READ
+  Suggestion     : Add byte limit inside loop (see Section 3 above).
+
+----------------------------------------------------------------------
+  Line   75 | close($socket);
+----------------------------------------------------------------------
+  Execution Type : [FILE] Socket close — return value discarded
+  What happens   : Flushes any pending output buffer and closes the TCP
+                   connection (syscall: close()). On success returns 1,
+                   on failure returns undef and sets $!.
+  Issue          : [? WARNING] PERL-UNCHECKED-CLOSE
+  Suggestion     : close($socket) or warn "Socket close failed: $!";
+
+----------------------------------------------------------------------
+  Lines 77–87 | if ($@ eq "timeout\n") { ... } my $data = decode_json(...)
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Error check + [CALL] JSON decode + [RETURN]
+  What happens   :
+    1. $@ eq "timeout\n" — checks if the eval/alarm signalled a timeout.
+       NOTE: $@ is set by eval{}. The alarm die sets $@ to "timeout\n".
+    2. decode_json($response) parses the JSON string back to a Perl structure.
+       Can die on malformed JSON.
+    3. Returns (1, $data) on success or (0, error_string) on failure.
+  Execution note : The string comparison $@ eq "timeout\n" is FRAGILE.
+                   If the die message changes by even one character (e.g.
+                   a trailing space), the timeout branch is missed and the
+                   timeout is treated as a successful (empty) response.
+  Issue          : [? WARNING] PERL-FRAGILE-EVAL-STRING
+  Suggestion     : Use a flag variable instead of string-matching $@:
+                   my $timed_out = 0;
+                   local $SIG{ALRM} = sub { $timed_out = 1; die };
+                   # ... then check: if ($timed_out) { ... }
+
+----------------------------------------------------------------------
+  Line   88 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Closes the send_mcp_request subroutine. This is the
+                   EXTRA closing brace flagged as an error.
+  Issue          : [! ERROR] PERL-UNMATCHED-BRACE
+
+----------------------------------------------------------------------
+  Line   93 | sub test_connectivity {
+----------------------------------------------------------------------
+  Execution Type : [DEF] Test subroutine — first test in execution order
+  What happens   : Defines test 1. Called at L327 in the main block.
+  Call chain     : main → test_connectivity → IO::Socket::INET->new
+                                            → log_result
+
+----------------------------------------------------------------------
+  Lines 95–101 | my $socket = IO::Socket::INET->new(...); if/unless checks
+----------------------------------------------------------------------
+  Execution Type : [METHOD] Constructor + [ASSIGN] + conditional [CALL]
+  What happens   :
+    1. Creates a NEW socket connection (separate from send_mcp_request's socket).
+    2. `unless ($socket)` → calls log_result("FAIL") and returns early.
+    3. `if ($socket)` → calls log_result("PASS").
+  Execution note : This test only checks if a TCP connection CAN be opened.
+                   It does not verify the MCP protocol handshake. That is
+                   correctly deferred to test_handshake (TEST 2).
+  Issue          : [? WARNING] PERL-UNCHECKED-METHOD-CHAIN (see Section 3)
+
+----------------------------------------------------------------------
+  Line  102 | close($socket);
+----------------------------------------------------------------------
+  Execution Type : [FILE] Socket close — return value discarded
+  Issue          : [? WARNING] PERL-UNCHECKED-CLOSE
+
+----------------------------------------------------------------------
+  Line  107 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  Status         : ✅ No issues.
+
+----------------------------------------------------------------------
+  Line  112 | sub test_handshake {
+----------------------------------------------------------------------
+  Execution Type : [DEF] Test 2 definition
+  Call chain     : main → test_handshake → send_mcp_request
+                                         → log_result (2 possible paths)
+
+----------------------------------------------------------------------
+  Lines 114–128 | my ($ok, $resp) = send_mcp_request('initialize', {...});
+----------------------------------------------------------------------
+  Execution Type : [CALL] + [ASSIGN] Two-value list assignment
+  What happens   :
+    1. send_mcp_request() is called with method='initialize' and a params hash.
+    2. Returns ($ok, $resp). $ok is 1 or 0. $resp is decoded JSON or error string.
+    3. `if ($ok && $resp->{result})` checks both: did the call succeed AND
+       did the server return a result field?
+    4. `$resp->{result}{serverInfo}{name}` — chained hash dereference.
+       If any intermediate key is missing, this returns undef (no error with
+       strict, but may produce "uninitialized value" warning).
+  Issue          : [! ERROR] PERL-UNCHECKED-RETURN-CONTEXT
+  Suggestion     : Use // (defined-or) for safe chained access:
+                   my $name = $resp->{result}{serverInfo}{name} // 'unknown';
+
+----------------------------------------------------------------------
+  Line  129 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  Status         : ✅ No issues.
+
+----------------------------------------------------------------------
+  Line  134 | sub test_list_tools {
+----------------------------------------------------------------------
+  Execution Type : [DEF] Test 3 definition
+  Call chain     : main → test_list_tools → send_mcp_request
+                                          → foreach loop over tools
+                                          → log_result
+
+----------------------------------------------------------------------
+  Lines 136–148 | my ($ok,$resp) = ...; foreach my $tool (@{$resp->{result}{tools}})
+----------------------------------------------------------------------
+  Execution Type : [CALL] + [ASSIGN] + [LOOP] foreach iteration
+  What happens   :
+    1. send_mcp_request('tools/list', {}) called.
+    2. @{$resp->{result}{tools}} — dereferences the tools arrayref from
+       the JSON response. If 'tools' key is missing, this dies with
+       "Not an ARRAY reference".
+    3. foreach my $tool (@tools) iterates each tool hash, logging its name.
+  Execution note : The foreach loop uses 'my $tool' — correctly scoped.
+                   Each iteration: $tool is a hashref with at least {name}.
+  Issue          : [? WARNING] PERL-LOOP-NO-BOUNDS
+  Suggestion     : Guard the arrayref dereference:
+                   my @tools = @{ $resp->{result}{tools} // [] };
+
+----------------------------------------------------------------------
+  Line  150 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  Status         : ✅ No issues.
+
+----------------------------------------------------------------------
+  Line  155 | sub test_analyze_modern_script {
+----------------------------------------------------------------------
+  Execution Type : [DEF] Test 4 definition
+
+----------------------------------------------------------------------
+  Lines 158–184 | my $modern_perl = <<'END_PERL'; ... send_mcp_request(...)
+----------------------------------------------------------------------
+  Execution Type : [ASSIGN] Heredoc + [CALL] + [EXEC] server-side analysis
+  What happens   :
+    1. <<'END_PERL' — single-quoted heredoc. Variables inside are NOT
+       interpolated. This is CORRECT here since the Perl code inside
+       contains $ variables that should not be expanded by the outer script.
+    2. The heredoc string is assigned to $modern_perl.
+    3. send_mcp_request('tools/call', {name=>'analyze',...}) sends the
+       embedded Perl script to the MCP server for analysis.
+  Execution note : Single-quoted heredoc (<<'END') vs double-quoted (<<"END"):
+                   <<'END'  — no interpolation (like single-quoted string)
+                   <<"END"  — interpolation (like double-quoted string)
+                   Using <<'END_PERL' here is correct and intentional.
+  Status         : ✅ Good heredoc style for embedded code. No issues.
+
+----------------------------------------------------------------------
+  Line  185 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  Status         : ✅ No issues.
+
+----------------------------------------------------------------------
+  Line  190 | sub test_detect_old_patterns {
+----------------------------------------------------------------------
+  Execution Type : [DEF] Test 5 definition
+
+----------------------------------------------------------------------
+  Line  191 | print "\n--- TEST 5: Detect Old/Deprecated Perl Patterns ---\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Stdout banner print
+  Issue          : [i INFO] PERL-MODERN-SAY — Replace with say()
+
+----------------------------------------------------------------------
+  Line  203 | open(FILE, ">out.txt");    (inside heredoc — embedded test)
+----------------------------------------------------------------------
+  Execution Type : [FILE] 2-arg open inside embedded test string
+  What happens   : This line is INSIDE the $old_perl heredoc string. It is
+                   NOT executed by the outer script. It is sent AS DATA to
+                   the MCP server, which analyzes it. The server should flag
+                   this as PERL-OLD-OPEN.
+  Issue          : [? WARNING] PERL-OLD-OPEN (flagged in embedded context)
+
+----------------------------------------------------------------------
+  Line  229 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  Status         : ✅ No issues.
+
+----------------------------------------------------------------------
+  Line  234 | sub test_malformed_script {
+----------------------------------------------------------------------
+  Execution Type : [DEF] Test 6 definition
+
+----------------------------------------------------------------------
+  Lines 237–254 | my $bad_perl = '...'; send_mcp_request(...)
+----------------------------------------------------------------------
+  Execution Type : [ASSIGN] + [CALL] Malformed input test
+  What happens   :
+    1. $bad_perl is assigned a syntactically invalid Perl string:
+       'sub broken { my $x = ; }' — missing RHS of assignment.
+    2. Sent to MCP server. The outer script does NOT try to eval this.
+    3. Response is checked for 'error' or 'syntax' keywords to verify
+       the MCP server correctly rejected the bad input.
+  Execution note : Good test — the outer script correctly keeps the bad
+                   Perl as a DATA string, never executing it. Correct design.
+  Status         : ✅ No issues on outer script side.
+
+----------------------------------------------------------------------
+  Line  255 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  Status         : ✅ No issues.
+
+----------------------------------------------------------------------
+  Line  260 | sub test_empty_script {
+----------------------------------------------------------------------
+  Execution Type : [DEF] Test 7 definition
+
+----------------------------------------------------------------------
+  Lines 263–277 | my ($ok, $resp) = send_mcp_request(...)
+----------------------------------------------------------------------
+  Execution Type : [CALL] + [ASSIGN] Empty input test
+  What happens   : Sends empty string as code, verifies server returns a
+                   valid response without crashing.
+  Status         : ✅ No issues.
+
+----------------------------------------------------------------------
+  Line  278 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  Status         : ✅ No issues.
+
+----------------------------------------------------------------------
+  Line  283 | sub test_latency {
+----------------------------------------------------------------------
+  Execution Type : [DEF] Test 8 definition
+
+----------------------------------------------------------------------
+  Lines 286–299 | my $start = time(); ... my $elapsed = time() - $start;
+----------------------------------------------------------------------
+  Execution Type : [ASSIGN] + [CALL] + [EXEC] Latency measurement
+  What happens   :
+    1. time() returns the current Unix epoch (integer seconds).
+    2. send_mcp_request is called once.
+    3. $elapsed = time() - $start calculates round-trip time.
+    4. Compared against $TIMEOUT threshold for PASS/FAIL.
+  Execution note : time() has SECOND-level resolution only. For sub-second
+                   latency measurement (e.g. 200ms), use Time::HiRes:
+                   use Time::HiRes qw(time);  # gives float e.g. 0.234
+  Suggestion     : Replace time() with Time::HiRes::time() for accurate
+                   latency reporting:
+                   use Time::HiRes qw(time);
+                   my $start   = time();
+                   # ... call ...
+                   my $elapsed = sprintf("%.3f", time() - $start);
+                   log_result("Latency", "INFO", "${elapsed}s");
+
+----------------------------------------------------------------------
+  Line  300 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  Status         : ✅ No issues.
+
+----------------------------------------------------------------------
+  Line  305 | sub write_log {
+----------------------------------------------------------------------
+  Execution Type : [DEF] Log writer definition
+
+----------------------------------------------------------------------
+  Lines 306–316 | open(my $fh,'>',$LOG_FILE) or die...; print...; close($fh);
+----------------------------------------------------------------------
+  Execution Type : [FILE] 3-arg open + write loop + close
+  What happens   :
+    1. open(my $fh, '>', $LOG_FILE) — correct 3-arg form. Creates/truncates
+       the log file. If it fails, die with $! error message. ✅
+    2. print $fh "=" x 60, "\n" — prints separator to file (not STDOUT).
+    3. foreach my $r (@results) { print $fh "$r\n" } — loops over all
+       accumulated test result lines, writes each to file.
+    4. close($fh) — closes and flushes. Return value unchecked. ⚠️
+  Loop note      : The foreach loop at this step is the ONLY file-write
+                   loop in the script. It correctly uses 'my $r' scoping.
+  Issue          : [? WARNING] PERL-UNCHECKED-CLOSE at L316
+
+----------------------------------------------------------------------
+  Line  317 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  Status         : ✅ No issues.
+
+----------------------------------------------------------------------
+  Lines 322–325 | print "="x60...; print "MCP SERVER TEST SUITE\n"; ...
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Banner output — first actual runtime output
+  What happens   : These are the FIRST lines to produce visible output when
+                   the script runs. All previous lines were definitions.
+                   "=" x 60 uses Perl's repetition operator to generate
+                   a 60-char separator string at runtime.
+  Issue          : [i INFO] PERL-MODERN-SAY (×4 lines)
+
+----------------------------------------------------------------------
+  Lines 327–334 | test_connectivity(); ... test_latency();
+----------------------------------------------------------------------
+  Execution Type : [CALL] Sequential subroutine invocations — test execution
+  What happens   : Each test sub is called in ORDER. No parallelism. Each
+                   call is BLOCKING — the next test does not start until
+                   the previous one finishes (including its socket timeouts).
+  Execution note : Worst case: if all 8 tests hit the $TIMEOUT=10s timeout,
+                   total runtime = 8 × 10s = 80 seconds. No overall timeout.
+  Issue          : [? WARNING] PERL-VOID-CALL (no eval wrapper, no isolation)
+  Suggestion     : Wrap in eval{} so one crashing test doesn't abort the rest.
+                   (See Section 3 — PERL-VOID-CALL for full code example)
+
+----------------------------------------------------------------------
+  Line  341 | write_log();
+----------------------------------------------------------------------
+  Execution Type : [CALL] Final file-write call
+  What happens   : Calls write_log(), which opens $LOG_FILE, writes all
+                   @results entries, and closes the file. This is the LAST
+                   side-effect before exit.
+  Execution note : If write_log() dies (e.g. disk full, permission denied),
+                   the exit code on L344 will never be reached. Wrap in eval:
+                   eval { write_log() } or warn "Cannot write log: $@";
+
+----------------------------------------------------------------------
+  Lines 337–339 | print "\n" . "=" x 60 . "\n"; ...
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Summary banner
+  What happens   : Prints the final results summary with pass/fail counts
+                   to STDOUT.
+  Issue          : [i INFO] PERL-MODERN-SAY (×3 lines)
+
+----------------------------------------------------------------------
+  Line  342 | print "\nFull results saved to: $LOG_FILE\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Confirmation message
+  Issue          : [i INFO] PERL-MODERN-SAY
+
+----------------------------------------------------------------------
+  Line  344 | exit($fail_count > 0 ? 1 : 0);
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Process termination with computed exit code
+  What happens   : The ternary operator evaluates $fail_count > 0 at runtime.
+                   If true  → exits with code 1 (CI/CD sees failure)
+                   If false → exits with code 0 (CI/CD sees success)
+  Execution note : This is the correct pattern for test harnesses. Exit code
+                   1 triggers CI/CD pipeline failures. ✅
+  Suggestion     : Also log a machine-readable summary line before exit:
+                   printf "RESULT: %d passed, %d failed\n",
+                          $pass_count, $fail_count;
+
+================================================================================
+5. EXECUTION CLARITY SUMMARY TABLE
+================================================================================
+
+  Line(s)   | Type        | Clarity Issue                  | Priority
+  ----------|-------------|--------------------------------|----------
+  1         | Shebang     | No version pragma              | Medium
+  2–3       | [IMPORT]    | ✅ Correct — no issues         | —
+  4         | [IMPORT]    | No version pin or fallback     | Low
+  14–17     | [ASSIGN]    | Should be constants            | Low
+  21–23     | [ASSIGN]    | Non-atomic counters            | Low
+  29–31     | [ASSIGN]    | No arg count validation        | Medium
+  31        | [CALL]+[ASSIGN] | localtime timezone assumption | Low
+  32        | [ASSIGN]    | No $detail sanitization        | Medium
+  33        | [EXEC]      | Use say() instead of print+\n  | Low
+  42–43     | [ASSIGN]    | No $params type check          | Medium
+  44–52     | [METHOD]    | $! vs $@ in error message      | Medium
+  55–62     | [CALL]+[FILE] | encode_json not in eval{}    | Medium
+  64–70     | [LOOP]+[FILE] | No byte cap on socket read   | High
+  75,102,316| [FILE]      | close() unchecked              | Medium
+  77–87     | [EXEC]      | Fragile $@ string comparison   | High
+  95–106    | [METHOD]+[CALL] | Return count not validated | Medium
+  136–148   | [LOOP]      | No bounds on tool iteration    | Medium
+  286–299   | [EXEC]+[ASSIGN] | time() is second-resolution | Low
+  327–334   | [CALL]      | No eval{} isolation per test   | High
+  341       | [CALL]      | write_log() not in eval{}      | Medium
+  344       | [EXEC]      | ✅ Correct exit code pattern   | —
+
+================================================================================
+6. SECURITY ANALYSIS
+================================================================================
+
+  Overall Security Risk : LOW
+
+  Finding 1 — Unchecked close() return value (socket)
+  Severity : Low
+  Line     : 75, 102
+  Detail   : close() on a socket handle does not check the return value.
+             If the TCP connection was interrupted during data transmission,
+             the close may fail silently, potentially masking incomplete
+             writes. In a test harness this could lead to false PASS results.
+
+  Finding 2 — Unchecked close() return value (file)
+  Severity : Low
+  Line     : 316
+  Detail   : close() on the log filehandle ignores errors. On network
+             filesystems (NFS, SMB), data may not be flushed to disk until
+             close(), and a failure here loses the log output silently.
+
+  Finding 3 — No input validation on socket responses
+  Severity : Low
+  Line     : 64–70
+  Detail   : The script reads raw data from the socket and evaluates it
+             as JSON. While the eval block catches parse errors, there is
+             no size limit on the response buffer. A malicious or buggy
+             server could send unbounded data, causing memory exhaustion.
+  Suggested fix:
+    Add a maximum response size check in the while loop.
+
+  Finding 4 — die without $! for open error on line 306
+  Severity : Low
+  Line     : 306
+  Detail   : The open() call correctly includes $! in the die message.
+             No issue found — this is good practice.
+
+  Finding 5 — Hardcoded credentials / sensitive paths
+  Severity : None
+  Detail   : No hardcoded credentials, passwords, or sensitive file paths
+             were detected in this script. Good practice.
+
+================================================================================
+7. MODERNIZATION SUGGESTIONS  (Updated)
+================================================================================
+
+  PRIORITY 1 — Fix critical execution risks
+    a) Wrap all test calls in eval{} — prevents cascade failure
+    b) Fix $@ timeout check — use flag variable, not string match
+    c) Add byte cap to socket read loop — prevents memory exhaustion
+    d) Validate send_mcp_request return count
+
+  PRIORITY 2 — Fix I/O safety
+    a) Check close() return values (L75, L102, L316)
+    b) Wrap encode_json in eval{}
+    c) Wrap write_log() call in eval{}
+    d) Add $| = 1 for live output flushing
+
+  PRIORITY 3 — Improve clarity and robustness
+    a) Add 'use v5.20' version declaration
+    b) Replace all print+\n with say()
+    c) Use Time::HiRes for latency measurement
+    d) Use constants for config variables
+    e) Sanitize $detail in log_result()
+    f) Use sprintf for log formatting
+
+  Benefits of Modernization:
+    • Improved code readability and maintainability
+    • Better performance and reduced memory usage
+    • Enhanced security — eliminates silent I/O failures
+    • Compatibility with modern Perl versions (5.32+)
+    • Easier integration with modern EDA tools
+    • Declared version ensures minimum Perl compatibility
+    • Safer I/O via checked close() return values
+    • Isolated test execution via eval{} wrapping
+
+================================================================================
+8. MISSING DETECTIONS (MCP SERVER GAPS)  — Updated
+================================================================================
+
+  The following issues exist in the script but were NOT caught by the server.
+  These represent rule enhancements to add to the MCP analyzer:
+
+  Gap 1 — Unchecked close() return value
+  Line    : 75, 102, 316
+  Rule ID : PERL-UNCHECKED-CLOSE
+  Action  : Add detection: close(...) not followed by 'or warn' / 'or die'
+            → flag with WARNING. Context: file and socket handles.
+
+  Gap 2 — No Perl version declaration
+  Line    : 1
+  Rule ID : PERL-MISSING-VERSION
+  Action  : Flag absence of 'use v5.XX' or 'use VERSION' after shebang
+            → flag with INFO. Recommend minimum version based on features used.
+
+  Gap 3 — Unbounded socket read loop
+  Line    : 64–70
+  Rule ID : PERL-UNBOUNDED-SOCKET-READ
+  Action  : Flag while(<$socket>) loops without a maximum size check
+            → flag with WARNING. Suggest byte limit to prevent exhaustion.
+
+  Gap 4 — Void-context subroutine calls (no eval{} isolation)
+  Line    : 327–334
+  Rule ID : PERL-VOID-CALL
+  Action  : Detect sub calls in void context in the main block where
+            the sub may die → flag with WARNING. Suggest eval{} wrapper.
+
+  Gap 5 — Return context not validated (2-value return assumption)
+  Line    : 95, 114, 136, etc.
+  Rule ID : PERL-UNCHECKED-RETURN-CONTEXT
+  Action  : Flag my ($x,$y) = func() pattern without @result check
+            → flag with WARNING.
+
+  Gap 6 — Fragile eval $@ string comparison for timeout detection
+  Line    : 77
+  Rule ID : PERL-FRAGILE-EVAL-STRING
+  Action  : Detect $@ eq "literal" pattern after eval{} blocks
+            → flag with WARNING. Suggest flag variable approach.
+
+  Gap 7 — chop vs chomp detection
+  Line    : N/A (not present in this script, but should be a rule)
+  Rule ID : PERL-CHOP-VS-CHOMP
+  Action  : Add regex pattern: /\bchop\b/ used on input data → flag with
+            WARNING. Suggest chomp as safer alternative.
+
+  Gap 8 — encode_json/decode_json not wrapped in eval{}
+  Line    : 55–62
+  Rule ID : PERL-ENCODE-NOT-IN-EVAL
+  Action  : Detect JSON encode/decode calls not inside eval{} → flag
+            with INFO. Suggest eval{} wrap for graceful error handling.
+
+================================================================================
+                    END OF REPORT
+================================================================================
+  Generated by MPC Protocol - Perl Script Analyzer  v3.0.0
+  Previous version issues : 24
+  This version issues     : 32  (+8 deep execution-level issues)
+  Server gaps identified  : 8   (was 5, +3 new gaps)
+  Execution types covered : ASSIGN, CALL, LOOP, FILE, METHOD, EXEC, DEF, IMPORT
+================================================================================

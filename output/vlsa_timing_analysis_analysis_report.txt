@@ -1,0 +1,1069 @@
+================================================================================
+                    PERL SCRIPT ANALYSIS REPORT
+================================================================================
+
+  Script      : vlsa_timing_analysis.pl
+  Analyzed On : 2026-05-15 00:03:36
+  Total Lines : 153
+
+================================================================================
+1. EXECUTIVE SUMMARY
+================================================================================
+
+  Script Type       : VLSI/EDA
+  EDA Tools Detected : Synopsys DC / Cadence Genus, Synopsys PrimeTime / Cadence Tempus, Cadence Innovus / Synopsys ICC2
+  Total Issues      : 17
+  ├─ Critical       : 1
+  ├─ Errors         : 1
+  ├─ Warnings       : 3
+  └─ Info           : 12
+
+  Modules Used      : 0
+  Subroutines       : 3
+  Variables         : 3
+  Best Practices    : Poor (missing strict and warnings)
+
+  Issues by Category:
+    - best_practice: 2
+    - eda: 11
+    - file_io: 2
+    - io_operations: 1
+    - security: 1
+
+================================================================================
+2. SCRIPT OVERVIEW
+================================================================================
+
+  Interpreter : #!/usr/bin/perl
+
+  Subroutines Defined:
+    Line  106: parse_timing_path
+    Line  124: filter_paths
+    Line  138: generate_eda_commands
+
+================================================================================
+3. ALL ISSUES FOUND
+================================================================================
+
+  [ERROR] Missing "use strict" pragma
+  Line: 1
+  Why this is an issue:
+    The 'use strict' pragma is essential for writing robust Perl code. It enforces variable declaration with my/our, prevents bareword usage, and catches many common errors.
+  Suggested fix:
+    Add 'use strict;' at the beginning of the script
+  Recommended modern code:
+    use strict;
+use warnings;
+
+  [WARNING] Missing "use warnings" pragma
+  Line: 1
+  Why this is an issue:
+    The 'use warnings' pragma enables warning messages for potential issues in your code.
+  Suggested fix:
+    Add 'use warnings;' at the beginning of the script
+  Recommended modern code:
+    use warnings;
+
+  [INFO] EDA tool command: analyze
+  Line: 5
+  Why this is an issue:
+    This script uses Synopsys Design Compiler commands. The modern alternative is Genus Synthesis Tool.
+  Suggested fix:
+    Consider migrating to Genus Synthesis Tool
+
+  [WARNING] Old-style 2-argument open with bareword filehandle
+  Line: 18
+  Why this is an issue:
+    Using bareword filehandles with 2-argument open is deprecated. Use lexical filehandles with 3-argument open for better security.
+  Suggested fix:
+    Use: open(my $fh, '<', $filename) or die ...
+  Recommended modern code:
+    open(my $fh, '<', $filename) or die "Cannot open: $!";
+
+  [WARNING] Old-style 2-argument open with bareword filehandle
+  Line: 19
+  Why this is an issue:
+    Using bareword filehandles with 2-argument open is deprecated. Use lexical filehandles with 3-argument open for better security.
+  Suggested fix:
+    Use: open(my $fh, '<', $filename) or die ...
+  Recommended modern code:
+    open(my $fh, '<', $filename) or die "Cannot open: $!";
+
+  [INFO] EDA tool command: dc_shell
+  Line: 63
+  Why this is an issue:
+    This script uses Synopsys Design Compiler commands. The modern alternative is Genus Synthesis Tool.
+  Suggested fix:
+    Consider migrating to Genus Synthesis Tool
+
+  [INFO] EDA tool command: pt_shell
+  Line: 63
+  Why this is an issue:
+    This script uses Synopsys PrimeTime commands. The modern alternative is PrimeTime 2020+.
+  Suggested fix:
+    Consider migrating to PrimeTime 2020+
+
+  [CRITICAL] Potential code injection via eval
+  Line: 93
+  Why this is an issue:
+    Using eval with string argument executes arbitrary code. Use eval BLOCK instead.
+  Suggested fix:
+    Use eval { ... } instead of eval 'string'
+  Recommended modern code:
+    eval { risky_operation() };
+
+  [INFO] Print with explicit newline - consider using say
+  Line: 103
+  Why this is an issue:
+    The Perl 5.10+ say() function automatically adds a newline, making code cleaner.
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Recommended modern code:
+    say "your text here";
+
+  [INFO] EDA tool command: elaborate
+  Line: 143
+  Why this is an issue:
+    This script uses Synopsys Design Compiler commands. The modern alternative is Genus Synthesis Tool.
+  Suggested fix:
+    Consider migrating to Genus Synthesis Tool
+
+  [INFO] EDA tool command: compile
+  Line: 144
+  Why this is an issue:
+    This script uses Synopsys Design Compiler commands. The modern alternative is Genus Synthesis Tool.
+  Suggested fix:
+    Consider migrating to Genus Synthesis Tool
+
+  [INFO] EDA tool command: innovus
+  Line: 146
+  Why this is an issue:
+    This script uses Cadence Innovus commands. The modern alternative is Innovus 21+.
+  Suggested fix:
+    Consider migrating to Innovus 21+
+
+  [INFO] EDA tool command: floorplan
+  Line: 147
+  Why this is an issue:
+    This script uses Cadence Innovus commands. The modern alternative is Innovus 21+.
+  Suggested fix:
+    Consider migrating to Innovus 21+
+
+  [INFO] EDA tool command: place_opt_design
+  Line: 148
+  Why this is an issue:
+    This script uses Cadence Innovus commands. The modern alternative is Innovus 21+.
+  Suggested fix:
+    Consider migrating to Innovus 21+
+
+  [INFO] EDA tool command: opt_design
+  Line: 148
+  Why this is an issue:
+    This script uses Cadence Innovus commands. The modern alternative is Innovus 21+.
+  Suggested fix:
+    Consider migrating to Innovus 21+
+
+  [INFO] EDA tool command: ccopt_design
+  Line: 149
+  Why this is an issue:
+    This script uses Cadence Innovus commands. The modern alternative is Innovus 21+.
+  Suggested fix:
+    Consider migrating to Innovus 21+
+
+  [INFO] EDA tool command: route_design
+  Line: 150
+  Why this is an issue:
+    This script uses Cadence Innovus commands. The modern alternative is Innovus 21+.
+  Suggested fix:
+    Consider migrating to Innovus 21+
+
+================================================================================
+4. LINE-BY-LINE EXPLANATION
+================================================================================
+
+----------------------------------------------------------------------
+  Line    1 | #!/usr/bin/perl
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: !/usr/bin/perl
+
+  Issues at this line:
+    [! ERROR] Missing "use strict" pragma
+    Fix: Add 'use strict;' at the beginning of the script
+
+    [? WARNING] Missing "use warnings" pragma
+    Fix: Add 'use warnings;' at the beginning of the script
+
+----------------------------------------------------------------------
+  Line    2 | #
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: 
+
+----------------------------------------------------------------------
+  Line    3 | # timing_analysis.pl - VLSI Timing Analysis Script
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: timing_analysis.pl - VLSI Timing Analysis Script
+
+----------------------------------------------------------------------
+  Line    4 | #
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: 
+
+----------------------------------------------------------------------
+  Line    5 | # This script analyzes timing reports from Synopsys PrimeTime
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: This script analyzes timing reports from Synopsys PrimeTime
+
+  Issues at this line:
+    [i INFO] EDA tool command: analyze
+    Fix: Consider migrating to Genus Synthesis Tool
+
+----------------------------------------------------------------------
+  Line    6 | # and generates a summary of timing violations.
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: and generates a summary of timing violations.
+
+----------------------------------------------------------------------
+  Line    7 | #
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: 
+
+----------------------------------------------------------------------
+  Line    8 | # Usage: perl timing_analysis.pl <timing_report> <output_file>
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: Usage: perl timing_analysis.pl <timing_report> <output_file>
+
+----------------------------------------------------------------------
+  Line   10 | # Legacy Perl: Missing strict/warnings
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: Legacy Perl: Missing strict/warnings
+
+----------------------------------------------------------------------
+  Line   12 | # Configuration
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: Configuration
+
+----------------------------------------------------------------------
+  Line   13 | $timing_threshold = 0.5;  # Timing violation threshold in ns
+----------------------------------------------------------------------
+  Purpose     : Computation
+  Explanation : This is a Perl expression that computes a value.
+
+----------------------------------------------------------------------
+  Line   14 | $max_paths = 100;
+----------------------------------------------------------------------
+  Purpose     : Data storage
+  Explanation : This line assigns a value to a variable.
+
+----------------------------------------------------------------------
+  Line   15 | $search_directory = "./timing_reports";
+----------------------------------------------------------------------
+  Purpose     : Data storage
+  Explanation : This line assigns a value to a variable.
+
+----------------------------------------------------------------------
+  Line   17 | # Open the timing report file (old-style bareword filehandle)
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: Open the timing report file (old-style bareword filehandle)
+
+----------------------------------------------------------------------
+  Line   18 | open(REPORT, "< $ARGV[0]") or die "Cannot open $ARGV[0]";
+----------------------------------------------------------------------
+  Purpose     : Input/Output
+  Explanation : This line performs input/output operations.
+
+  Issues at this line:
+    [? WARNING] Old-style 2-argument open with bareword filehandle
+    Fix: Use: open(my $fh, '<', $filename) or die ...
+
+----------------------------------------------------------------------
+  Line   19 | open(OUT, "> $ARGV[1]") or die "Cannot open $ARGV[1]";
+----------------------------------------------------------------------
+  Purpose     : Input/Output
+  Explanation : This line performs input/output operations.
+
+  Issues at this line:
+    [? WARNING] Old-style 2-argument open with bareword filehandle
+    Fix: Use: open(my $fh, '<', $filename) or die ...
+
+----------------------------------------------------------------------
+  Line   21 | print OUT "Timing Analysis Report\n";
+----------------------------------------------------------------------
+  Purpose     : Input/Output
+  Explanation : This line performs input/output operations.
+
+----------------------------------------------------------------------
+  Line   22 | print OUT "=" x 40 . "\n";
+----------------------------------------------------------------------
+  Purpose     : Input/Output
+  Explanation : This line performs input/output operations.
+
+----------------------------------------------------------------------
+  Line   24 | # Read and parse the timing report
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: Read and parse the timing report
+
+----------------------------------------------------------------------
+  Line   25 | $violation_count = 0;
+----------------------------------------------------------------------
+  Purpose     : Data storage
+  Explanation : This line assigns a value to a variable.
+
+----------------------------------------------------------------------
+  Line   26 | $total_paths = 0;
+----------------------------------------------------------------------
+  Purpose     : Data storage
+  Explanation : This line assigns a value to a variable.
+
+----------------------------------------------------------------------
+  Line   27 | $worst_slack = 0;
+----------------------------------------------------------------------
+  Purpose     : Data storage
+  Explanation : This line assigns a value to a variable.
+
+----------------------------------------------------------------------
+  Line   28 | $worst_path = "";
+----------------------------------------------------------------------
+  Purpose     : Data storage
+  Explanation : This line assigns a value to a variable.
+
+----------------------------------------------------------------------
+  Line   30 | while (<REPORT>) {
+----------------------------------------------------------------------
+  Purpose     : Flow control
+  Explanation : This is a control structure that controls the flow of execution based on conditions or iteration.
+
+----------------------------------------------------------------------
+  Line   31 | chomp;
+----------------------------------------------------------------------
+  Purpose     : Action
+  Explanation : This is a Perl statement that performs an action.
+
+----------------------------------------------------------------------
+  Line   33 | # Skip comments and empty lines
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: Skip comments and empty lines
+
+----------------------------------------------------------------------
+  Line   34 | next if /^#/;
+----------------------------------------------------------------------
+  Purpose     : Action
+  Explanation : This is a Perl statement that performs an action.
+
+----------------------------------------------------------------------
+  Line   35 | next if /^\s*$/;
+----------------------------------------------------------------------
+  Purpose     : Action
+  Explanation : This is a Perl statement that performs an action.
+
+----------------------------------------------------------------------
+  Line   37 | $total_paths++;
+----------------------------------------------------------------------
+  Purpose     : Action
+  Explanation : This is a Perl statement that performs an action.
+
+----------------------------------------------------------------------
+  Line   39 | # Parse timing path information
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: Parse timing path information
+
+----------------------------------------------------------------------
+  Line   40 | if (/Path\s+(\d+):\s+(.+)/) {
+----------------------------------------------------------------------
+  Purpose     : Action
+  Explanation : This is a Perl statement that performs an action.
+
+----------------------------------------------------------------------
+  Line   41 | $path_id = $1;
+----------------------------------------------------------------------
+  Purpose     : Data storage
+  Explanation : This line assigns a value to a variable.
+
+----------------------------------------------------------------------
+  Line   42 | $path_name = $2;
+----------------------------------------------------------------------
+  Purpose     : Data storage
+  Explanation : This line assigns a value to a variable.
+
+----------------------------------------------------------------------
+  Line   43 | print OUT "Path $path_id: $path_name\n";
+----------------------------------------------------------------------
+  Purpose     : Input/Output
+  Explanation : This line performs input/output operations.
+
+----------------------------------------------------------------------
+  Line   44 | }
+----------------------------------------------------------------------
+  Purpose     : Action
+  Explanation : This is a Perl statement that performs an action.
+
+----------------------------------------------------------------------
+  Line   46 | # Check for slack values
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: Check for slack values
+
+----------------------------------------------------------------------
+  Line   47 | if (/slack\s+([-+]?\d+\.?\d*)/) {
+----------------------------------------------------------------------
+  Purpose     : Action
+  Explanation : This is a Perl statement that performs an action.
+
+----------------------------------------------------------------------
+  Line   48 | $slack = $1;
+----------------------------------------------------------------------
+  Purpose     : Data storage
+  Explanation : This line assigns a value to a variable.
+
+----------------------------------------------------------------------
+  Line   49 | print OUT "  Slack: ${slack}ns\n";
+----------------------------------------------------------------------
+  Purpose     : Input/Output
+  Explanation : This line performs input/output operations.
+
+----------------------------------------------------------------------
+  Line   51 | if ($slack < $timing_threshold) {
+----------------------------------------------------------------------
+  Purpose     : Action
+  Explanation : This is a Perl statement that performs an action.
+
+----------------------------------------------------------------------
+  Line   52 | $violation_count++;
+----------------------------------------------------------------------
+  Purpose     : Action
+  Explanation : This is a Perl statement that performs an action.
+
+----------------------------------------------------------------------
+  Line   53 | print OUT "  !! TIMING VIOLATION: Slack $slack ns < $timing_threshold ns\n";
+----------------------------------------------------------------------
+  Purpose     : Input/Output
+  Explanation : This line performs input/output operations.
+
+----------------------------------------------------------------------
+  Line   55 | if ($slack < $worst_slack) {
+----------------------------------------------------------------------
+  Purpose     : Action
+  Explanation : This is a Perl statement that performs an action.
+
+----------------------------------------------------------------------
+  Line   56 | $worst_slack = $slack;
+----------------------------------------------------------------------
+  Purpose     : Data storage
+  Explanation : This line assigns a value to a variable.
+
+----------------------------------------------------------------------
+  Line   57 | $worst_path = $path_name;
+----------------------------------------------------------------------
+  Purpose     : Data storage
+  Explanation : This line assigns a value to a variable.
+
+----------------------------------------------------------------------
+  Line   58 | }
+----------------------------------------------------------------------
+  Purpose     : Action
+  Explanation : This is a Perl statement that performs an action.
+
+----------------------------------------------------------------------
+  Line   59 | }
+----------------------------------------------------------------------
+  Purpose     : Action
+  Explanation : This is a Perl statement that performs an action.
+
+----------------------------------------------------------------------
+  Line   60 | }
+----------------------------------------------------------------------
+  Purpose     : Action
+  Explanation : This is a Perl statement that performs an action.
+
+----------------------------------------------------------------------
+  Line   62 | # Check EDA tool patterns - Synopsys DC style
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: Check EDA tool patterns - Synopsys DC style
+
+----------------------------------------------------------------------
+  Line   63 | if (/dc_shell|synopsys|pt_shell/) {
+----------------------------------------------------------------------
+  Purpose     : Action
+  Explanation : This is a Perl statement that performs an action.
+
+  Issues at this line:
+    [i INFO] EDA tool command: dc_shell
+    Fix: Consider migrating to Genus Synthesis Tool
+
+    [i INFO] EDA tool command: pt_shell
+    Fix: Consider migrating to PrimeTime 2020+
+
+----------------------------------------------------------------------
+  Line   64 | print OUT "  Note: EDA tool command detected\n";
+----------------------------------------------------------------------
+  Purpose     : Input/Output
+  Explanation : This line performs input/output operations.
+
+----------------------------------------------------------------------
+  Line   65 | }
+----------------------------------------------------------------------
+  Purpose     : Action
+  Explanation : This is a Perl statement that performs an action.
+
+----------------------------------------------------------------------
+  Line   67 | # Check for TCL integration
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: Check for TCL integration
+
+----------------------------------------------------------------------
+  Line   68 | if (/tclsh|tcl_set|tcl_get/) {
+----------------------------------------------------------------------
+  Purpose     : Action
+  Explanation : This is a Perl statement that performs an action.
+
+----------------------------------------------------------------------
+  Line   69 | print OUT "  Note: TCL integration detected\n";
+----------------------------------------------------------------------
+  Purpose     : Input/Output
+  Explanation : This line performs input/output operations.
+
+----------------------------------------------------------------------
+  Line   70 | }
+----------------------------------------------------------------------
+  Purpose     : Action
+  Explanation : This is a Perl statement that performs an action.
+
+----------------------------------------------------------------------
+  Line   71 | }
+----------------------------------------------------------------------
+  Purpose     : Action
+  Explanation : This is a Perl statement that performs an action.
+
+----------------------------------------------------------------------
+  Line   73 | # Generate summary
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: Generate summary
+
+----------------------------------------------------------------------
+  Line   74 | print OUT "\n" . "=" x 40 . "\n";
+----------------------------------------------------------------------
+  Purpose     : Input/Output
+  Explanation : This line performs input/output operations.
+
+----------------------------------------------------------------------
+  Line   75 | print OUT "SUMMARY\n";
+----------------------------------------------------------------------
+  Purpose     : Input/Output
+  Explanation : This line performs input/output operations.
+
+----------------------------------------------------------------------
+  Line   76 | print OUT "=" x 40 . "\n";
+----------------------------------------------------------------------
+  Purpose     : Input/Output
+  Explanation : This line performs input/output operations.
+
+----------------------------------------------------------------------
+  Line   77 | print OUT "Total Paths Analyzed: $total_paths\n";
+----------------------------------------------------------------------
+  Purpose     : Input/Output
+  Explanation : This line performs input/output operations.
+
+----------------------------------------------------------------------
+  Line   78 | print OUT "Timing Violations: $violation_count\n";
+----------------------------------------------------------------------
+  Purpose     : Input/Output
+  Explanation : This line performs input/output operations.
+
+----------------------------------------------------------------------
+  Line   79 | print OUT "Worst Slack: ${worst_slack}ns\n";
+----------------------------------------------------------------------
+  Purpose     : Input/Output
+  Explanation : This line performs input/output operations.
+
+----------------------------------------------------------------------
+  Line   80 | print OUT "Worst Path: $worst_path\n";
+----------------------------------------------------------------------
+  Purpose     : Input/Output
+  Explanation : This line performs input/output operations.
+
+----------------------------------------------------------------------
+  Line   82 | # Calculate violation percentage
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: Calculate violation percentage
+
+----------------------------------------------------------------------
+  Line   83 | if ($total_paths > 0) {
+----------------------------------------------------------------------
+  Purpose     : Flow control
+  Explanation : This is a control structure that controls the flow of execution based on conditions or iteration.
+
+----------------------------------------------------------------------
+  Line   84 | $violation_pct = ($violation_count / $total_paths) * 100;
+----------------------------------------------------------------------
+  Purpose     : Operation execution
+  Explanation : This line calls a function to perform a specific operation.
+
+----------------------------------------------------------------------
+  Line   85 | print OUT "Violation Percentage: ${violation_pct}%\n";
+----------------------------------------------------------------------
+  Purpose     : Input/Output
+  Explanation : This line performs input/output operations.
+
+----------------------------------------------------------------------
+  Line   86 | }
+----------------------------------------------------------------------
+  Purpose     : Action
+  Explanation : This is a Perl statement that performs an action.
+
+----------------------------------------------------------------------
+  Line   88 | # Open worst path report
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: Open worst path report
+
+----------------------------------------------------------------------
+  Line   89 | if ($worst_path ne "") {
+----------------------------------------------------------------------
+  Purpose     : Flow control
+  Explanation : This is a control structure that controls the flow of execution based on conditions or iteration.
+
+----------------------------------------------------------------------
+  Line   90 | print OUT "\nDetailed analysis of worst path: $worst_path\n";
+----------------------------------------------------------------------
+  Purpose     : Input/Output
+  Explanation : This line performs input/output operations.
+
+----------------------------------------------------------------------
+  Line   92 | # Old-style: using eval on string (security concern)
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: Old-style: using eval on string (security concern)
+
+----------------------------------------------------------------------
+  Line   93 | eval "print OUT 'Worst path: $worst_path'";
+----------------------------------------------------------------------
+  Purpose     : Input/Output
+  Explanation : This line performs input/output operations.
+
+  Issues at this line:
+    [!! CRITICAL] Potential code injection via eval
+    Fix: Use eval { ... } instead of eval 'string'
+
+----------------------------------------------------------------------
+  Line   95 | # System call with variable (security concern)
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: System call with variable (security concern)
+
+----------------------------------------------------------------------
+  Line   96 | system("echo 'Reporting worst path: $worst_path'");
+----------------------------------------------------------------------
+  Purpose     : Action
+  Explanation : This is a Perl statement that performs an action.
+
+----------------------------------------------------------------------
+  Line   97 | }
+----------------------------------------------------------------------
+  Purpose     : Action
+  Explanation : This is a Perl statement that performs an action.
+
+----------------------------------------------------------------------
+  Line   99 | # Close files
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: Close files
+
+----------------------------------------------------------------------
+  Line  100 | close(REPORT);
+----------------------------------------------------------------------
+  Purpose     : File management
+  Explanation : This line performs file handling operations.
+
+----------------------------------------------------------------------
+  Line  101 | close(OUT);
+----------------------------------------------------------------------
+  Purpose     : File management
+  Explanation : This line performs file handling operations.
+
+----------------------------------------------------------------------
+  Line  103 | print "Analysis complete. Results written to $ARGV[1]\n";
+----------------------------------------------------------------------
+  Purpose     : Input/Output
+  Explanation : This line performs input/output operations.
+
+  Issues at this line:
+    [i INFO] Print with explicit newline - consider using say
+    Fix: Replace print with say() for automatic newline
+
+----------------------------------------------------------------------
+  Line  105 | # Subroutine to parse timing path (for demonstration)
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: Subroutine to parse timing path (for demonstration)
+
+----------------------------------------------------------------------
+  Line  106 | sub parse_timing_path {
+----------------------------------------------------------------------
+  Purpose     : Custom function definition
+  Explanation : This defines the subroutine 'parse_timing_path'. Subroutines encapsulate reusable code blocks.
+
+----------------------------------------------------------------------
+  Line  107 | my $line = shift;
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+----------------------------------------------------------------------
+  Line  108 | my ($startpoint, $endpoint, $delay);
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+----------------------------------------------------------------------
+  Line  110 | if ($line =~ /Startpoint:\s+(.+)/) {
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+----------------------------------------------------------------------
+  Line  111 | $startpoint = $1;
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+----------------------------------------------------------------------
+  Line  112 | }
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+----------------------------------------------------------------------
+  Line  113 | if ($line =~ /Endpoint:\s+(.+)/) {
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+----------------------------------------------------------------------
+  Line  114 | $endpoint = $1;
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+----------------------------------------------------------------------
+  Line  115 | }
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+----------------------------------------------------------------------
+  Line  116 | if ($line =~ /Data\s+Delay:\s+([-+]?\d+\.?\d*)/) {
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+----------------------------------------------------------------------
+  Line  117 | $delay = $1;
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+----------------------------------------------------------------------
+  Line  118 | }
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+----------------------------------------------------------------------
+  Line  120 | return ($startpoint, $endpoint, $delay);
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+----------------------------------------------------------------------
+  Line  121 | }
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+----------------------------------------------------------------------
+  Line  123 | # Subroutine to filter paths by slack threshold
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: Subroutine to filter paths by slack threshold
+
+----------------------------------------------------------------------
+  Line  124 | sub filter_paths {
+----------------------------------------------------------------------
+  Purpose     : Custom function definition
+  Explanation : This defines the subroutine 'filter_paths'. Subroutines encapsulate reusable code blocks.
+
+----------------------------------------------------------------------
+  Line  125 | my @paths = @_;
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+----------------------------------------------------------------------
+  Line  126 | my @filtered;
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+----------------------------------------------------------------------
+  Line  128 | foreach my $path (@paths) {
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+----------------------------------------------------------------------
+  Line  129 | if ($path->{slack} <= $timing_threshold) {
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+----------------------------------------------------------------------
+  Line  130 | push @filtered, $path;
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+----------------------------------------------------------------------
+  Line  131 | }
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+----------------------------------------------------------------------
+  Line  132 | }
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+----------------------------------------------------------------------
+  Line  134 | return @filtered;
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+----------------------------------------------------------------------
+  Line  135 | }
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+----------------------------------------------------------------------
+  Line  137 | # Subroutine to generate EDA tool commands
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: Subroutine to generate EDA tool commands
+
+----------------------------------------------------------------------
+  Line  138 | sub generate_eda_commands {
+----------------------------------------------------------------------
+  Purpose     : Custom function definition
+  Explanation : This defines the subroutine 'generate_eda_commands'. Subroutines encapsulate reusable code blocks.
+
+----------------------------------------------------------------------
+  Line  139 | my $design = shift;
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+----------------------------------------------------------------------
+  Line  141 | # Generate Synopsys DC synthesis commands
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: Generate Synopsys DC synthesis commands
+
+----------------------------------------------------------------------
+  Line  142 | print OUT "analyze -library WORK -format verilog {${design}.v}\n";
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+----------------------------------------------------------------------
+  Line  143 | print OUT "elaborate $design\n";
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [i INFO] EDA tool command: elaborate
+    Fix: Consider migrating to Genus Synthesis Tool
+
+----------------------------------------------------------------------
+  Line  144 | print OUT "compile -map_effort high\n";
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [i INFO] EDA tool command: compile
+    Fix: Consider migrating to Genus Synthesis Tool
+
+----------------------------------------------------------------------
+  Line  146 | # Generate Innovus P&R commands
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This is a comment: Generate Innovus P&R commands
+
+  Issues at this line:
+    [i INFO] EDA tool command: innovus
+    Fix: Consider migrating to Innovus 21+
+
+----------------------------------------------------------------------
+  Line  147 | print OUT "floorplan -coreMargins 10\n";
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [i INFO] EDA tool command: floorplan
+    Fix: Consider migrating to Innovus 21+
+
+----------------------------------------------------------------------
+  Line  148 | print OUT "place_opt_design\n";
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [i INFO] EDA tool command: place_opt_design
+    Fix: Consider migrating to Innovus 21+
+
+    [i INFO] EDA tool command: opt_design
+    Fix: Consider migrating to Innovus 21+
+
+----------------------------------------------------------------------
+  Line  149 | print OUT "ccopt_design\n";
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [i INFO] EDA tool command: ccopt_design
+    Fix: Consider migrating to Innovus 21+
+
+----------------------------------------------------------------------
+  Line  150 | print OUT "route_design\n";
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [i INFO] EDA tool command: route_design
+    Fix: Consider migrating to Innovus 21+
+
+----------------------------------------------------------------------
+  Line  151 | }
+----------------------------------------------------------------------
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+----------------------------------------------------------------------
+  Line  153 | 1;
+----------------------------------------------------------------------
+  Purpose     : Action
+  Explanation : This is a Perl statement that performs an action.
+
+================================================================================
+5. EDA / VLSI ANALYSIS
+================================================================================
+
+  5.1 EDA Script Types Detected:
+
+  Category: SYNTHESIS
+  Tool    : Synopsys DC / Cadence Genus
+  Desc.   : Synthesis script pattern detected
+  Explanation:
+    This script contains synthesis tool commands. Synthesis converts RTL (Verilog/VHDL) code into gate-level netlists. Understanding the synthesis flow is crucial for timing closure and area optimization.
+
+  Common Issues:
+    - Incorrect constraint application order
+    - Missing clock definitions
+    - Improper compile strategies
+
+  Category: TIMING
+  Tool    : Synopsys PrimeTime / Cadence Tempus
+  Desc.   : Timing analysis script pattern
+  Explanation:
+    This script performs static timing analysis (STA). Timing analysis verifies that all paths in the design meet timing constraints (setup, hold, recovery, removal).
+
+  Common Issues:
+    - Missing timing exceptions
+    - Incorrect clock definitions
+    - Improper OCV derating factors
+
+  Category: PHYSICAL_DESIGN
+  Tool    : Cadence Innovus / Synopsys ICC2
+  Desc.   : Physical design (P&R) script pattern
+  Explanation:
+    This script manages the physical design flow: floorplanning, placement, clock tree synthesis (CTS), and routing. Physical design is the process of translating a synthesized netlist into a physical layout.
+
+  Common Issues:
+    - Incorrect floorplan aspect ratio
+    - Poor power grid design
+    - Insufficient routing resources
+
+================================================================================
+6. MODERNIZATION SUGGESTIONS
+================================================================================
+
+The following modernizations are recommended:
+
+  Suggestion PERL-MISSING-STRICT:
+  Location: Line 1
+  Issue   : Missing "use strict" pragma
+  Code    : use strict;
+use warnings;
+
+  Suggestion PERL-MISSING-WARNINGS:
+  Location: Line 1
+  Issue   : Missing "use warnings" pragma
+  Code    : use warnings;
+
+  Suggestion PERL-OLD-OPEN:
+  Location: Line 18
+  Issue   : Old-style 2-argument open with bareword filehandle
+  Code    : open(my $fh, '<', $filename) or die "Cannot open: $!";
+
+  Suggestion PERL-OLD-OPEN:
+  Location: Line 19
+  Issue   : Old-style 2-argument open with bareword filehandle
+  Code    : open(my $fh, '<', $filename) or die "Cannot open: $!";
+
+  Suggestion SEC-EVAL-STRING:
+  Location: Line 93
+  Issue   : Potential code injection via eval
+  Code    : eval { risky_operation() };
+
+  Suggestion PERL-MODERN-SAY:
+  Location: Line 103
+  Issue   : Print with explicit newline - consider using say
+  Code    : say "your text here";
+
+  Benefits of Modernization:
+    • Improved code readability and maintainability
+    • Better performance and reduced memory usage
+    • Enhanced security against code injection
+    • Compatibility with modern Perl versions (5.32+)
+    • Easier integration with modern EDA tools
+
+================================================================================
+                    END OF REPORT
+================================================================================
+  Generated by MPC Protocol - Perl Script Analyzer
+  Analysis completed at: 2026-05-15 00:03:36
+================================================================================

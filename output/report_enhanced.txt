@@ -1,0 +1,1187 @@
+================================================================================
+                    PERL SCRIPT ANALYSIS REPORT
+================================================================================
+
+  Script      : mpc_perl_analyzer\script.pl
+  Analyzed On : 2026-05-15 23:26:24
+  Analyzer Ver: 2.0.0
+  Total Lines : 344
+  File Size   : 10,187 bytes
+  Encoding    : UTF-8
+
+================================================================================
+1. EXECUTIVE SUMMARY
+================================================================================
+
+  Script Type       : General (MCP Server Test Suite)
+  Perl Version      : Unknown (no version declaration found)
+  Total Issues      : 24                        ← Updated (was 20; 4 new added)
+  ├─ Critical       : 0
+  ├─ Errors         : 1
+  ├─ Warnings       : 4                        ← Updated (was 1)
+  └─ Info           : 19                        ← Updated (was 18)
+
+  Risk Score        : 4 / 10  (Low-Medium)      ← NEW: overall risk rating
+  Modules Used      : 8
+  Subroutines       : 12
+  Variables         : 27
+  Best Practices    : Good (strict + warnings enabled)
+
+  Issues by Category:
+    - best_practice : 1                        ← NEW category
+    - eda           : 1
+    - file_io       : 4                        ← Updated (was 1)
+    - io_operations : 17
+    - syntax        : 1
+
+================================================================================
+2. SCRIPT OVERVIEW
+================================================================================
+
+  Interpreter   : #!/usr/bin/perl
+  Shebang Valid : Yes
+  Perl Version  : Not declared                 ← NEW field
+  OOP Style     : None detected
+  Encoding      : No 'use utf8' declaration    ← NEW field
+
+  Modules Used:
+    Line    2: use strict
+    Line    3: use warnings
+    Line    4: use JSON
+    Line    5: use IO::Socket::INET
+    Line    6: use POSIX qw(strftime)
+    Line  160: use strict                      (embedded test script)
+    Line  161: use warnings                    (embedded test script)
+    Line  162: use feature 'say'               (embedded test script)
+
+  Subroutines Defined:
+    Line   28: log_result
+    Line   41: send_mcp_request
+    Line   93: test_connectivity
+    Line  112: test_handshake
+    Line  134: test_list_tools
+    Line  155: test_analyze_modern_script
+    Line  190: test_detect_old_patterns
+    Line  207: mysub                            (embedded test script)
+    Line  234: test_malformed_script
+    Line  260: test_empty_script
+    Line  283: test_latency
+    Line  305: write_log
+
+  Script Summary:
+    This is an MCP (Model Context Protocol) server test suite written in Perl.
+    It connects to an MCP server via TCP/IP socket (localhost:3000), runs 8
+    test cases covering connectivity, handshake, tool listing, modern script
+    analysis, old pattern detection, malformed input handling, empty input
+    edge case, and latency measurement. Results are logged both to stdout
+    and a summary log file. The script uses strict/warnings pragmas and
+    several CPAN modules (JSON, IO::Socket::INET, POSIX) but lacks a Perl
+    version declaration and does not check the return value of close() calls.
+
+================================================================================
+3. ALL ISSUES FOUND
+================================================================================
+
+  ── ERRORS ────────────────────────────────────────────────────────────────────
+
+  [ERROR] Unmatched closing brace
+  ID      : PERL-UNMATCHED-BRACE
+  Line    : 88
+  Category: syntax
+  Why this is an issue:
+    This closing brace '}' does not match any opening brace in the code.
+    An extra closing brace can cause unexpected scope termination or a
+    compilation error if it breaks subroutine boundaries.
+  Suggested fix:
+    Review the subroutine 'send_mcp_request' (lines 41-88) and remove the
+    extraneous closing brace, or add the missing opening brace.
+  Recommended modern code:
+    Ensure sub open/close braces match 1:1 — use Perl::Tidy or an editor
+    with brace matching to verify.
+
+  ── WARNINGS ──────────────────────────────────────────────────────────────────
+
+  [WARNING] Old-style 2-argument open with bareword filehandle
+  ID      : PERL-OLD-OPEN
+  Line    : 203
+  Category: file_io
+  Why this is an issue:
+    Using bareword filehandles with 2-argument open is deprecated. It pollutes
+    the global symbol table and is less secure than lexical filehandles with
+    3-argument open, which separates the mode from the filename. This issue
+    appears inside an embedded test script (heredoc).
+  Suggested fix:
+    Use: open(my $fh, '<', $filename) or die ...
+  Recommended modern code:
+    open(my $fh, '>', 'out.txt') or die "Cannot open 'out.txt': $!";
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [WARNING] close() return value not checked                              ← NEW
+  ID      : PERL-UNCHECKED-CLOSE
+  Line    : 75
+  Category: file_io
+  Why this is an issue:
+    The return value of close() is ignored. On buffered file handles (or
+    socket handles), close() can fail silently — flushing buffered data to
+    disk/network may encounter an I/O error. Unchecked close() can mask
+    data loss or incomplete transmission.
+  Suggested fix:
+    Check the return value of close(): close($fh) or warn "Close failed: $!";
+  Recommended modern code:
+    close($socket) or warn "Failed to close socket: $!";
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [WARNING] close() return value not checked                              ← NEW
+  ID      : PERL-UNCHECKED-CLOSE
+  Line    : 102
+  Category: file_io
+  Why this is an issue:
+    Same as line 75 — the close($socket) return value is not checked. In
+    this test subroutine, a silent I/O failure during close could cause a
+    false PASS result, as the socket may not have been cleanly closed.
+  Suggested fix:
+    Check close() return value.
+  Recommended modern code:
+    close($socket) or warn "Failed to close socket: $!";
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [WARNING] close() return value not checked                              ← NEW
+  ID      : PERL-UNCHECKED-CLOSE
+  Line    : 316
+  Category: file_io
+  Why this is an issue:
+    The close($fh) call in write_log() does not check its return value. On
+    NFS or network filesystems, write buffers may only flush during close();
+    ignoring the return value risks losing log data silently.
+  Suggested fix:
+    Check close() return value.
+  Recommended modern code:
+    close($fh) or warn "Cannot close log file '$LOG_FILE': $!";
+
+  ── INFO ──────────────────────────────────────────────────────────────────────
+
+  [INFO] Print with explicit newline — consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 33
+  Category: io_operations
+  Why this is an issue:
+    The Perl 5.10+ say() function automatically adds a newline, making code
+    cleaner and reducing visual clutter.
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Recommended modern code:
+    say "your text here";
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [INFO] Print with explicit newline — consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 94
+  Category: io_operations
+  Why this is an issue:
+    The Perl 5.10+ say() function automatically adds a newline, making code
+    cleaner and reducing visual clutter.
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Recommended modern code:
+    say "your text here";
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [INFO] Print with explicit newline — consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 113
+  Category: io_operations
+  Why this is an issue:
+    The Perl 5.10+ say() function automatically adds a newline, making code
+    cleaner and reducing visual clutter.
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Recommended modern code:
+    say "your text here";
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [INFO] Print with explicit newline — consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 135
+  Category: io_operations
+  Why this is an issue:
+    The Perl 5.10+ say() function automatically adds a newline, making code
+    cleaner and reducing visual clutter.
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Recommended modern code:
+    say "your text here";
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [INFO] EDA tool command: analyze
+  ID      : PERL-EDA-COMMENT
+  Line    : 153
+  Category: eda
+  Why this is an issue:
+    This script uses Synopsys Design Compiler commands. The modern alternative
+    is Genus Synthesis Tool.
+  Suggested fix:
+    Consider migrating to Genus Synthesis Tool
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [INFO] Print with explicit newline — consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 156
+  Category: io_operations
+  Why this is an issue:
+    The Perl 5.10+ say() function automatically adds a newline, making code
+    cleaner and reducing visual clutter.
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Recommended modern code:
+    say "your text here";
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [INFO] Print with explicit newline — consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 191
+  Category: io_operations
+  Why this is an issue:
+    The Perl 5.10+ say() function automatically adds a newline, making code
+    cleaner and reducing visual clutter.
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Recommended modern code:
+    say "your text here";
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [INFO] Print with explicit newline — consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 235
+  Category: io_operations
+  Why this is an issue:
+    The Perl 5.10+ say() function automatically adds a newline, making code
+    cleaner and reducing visual clutter.
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Recommended modern code:
+    say "your text here";
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [INFO] Print with explicit newline — consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 261
+  Category: io_operations
+  Why this is an issue:
+    The Perl 5.10+ say() function automatically adds a newline, making code
+    cleaner and reducing visual clutter.
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Recommended modern code:
+    say "your text here";
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [INFO] Print with explicit newline — consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 284
+  Category: io_operations
+  Why this is an issue:
+    The Perl 5.10+ say() function automatically adds a newline, making code
+    cleaner and reducing visual clutter.
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Recommended modern code:
+    say "your text here";
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [INFO] Print with explicit newline — consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 322
+  Category: io_operations
+  Why this is an issue:
+    The Perl 5.10+ say() function automatically adds a newline, making code
+    cleaner and reducing visual clutter.
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Recommended modern code:
+    say "your text here";
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [INFO] Print with explicit newline — consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 323
+  Category: io_operations
+  Why this is an issue:
+    The Perl 5.10+ say() function automatically adds a newline, making code
+    cleaner and reducing visual clutter.
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Recommended modern code:
+    say "your text here";
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [INFO] Print with explicit newline — consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 324
+  Category: io_operations
+  Why this is an issue:
+    The Perl 5.10+ say() function automatically adds a newline, making code
+    cleaner and reducing visual clutter.
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Recommended modern code:
+    say "your text here";
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [INFO] Print with explicit newline — consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 325
+  Category: io_operations
+  Why this is an issue:
+    The Perl 5.10+ say() function automatically adds a newline, making code
+    cleaner and reducing visual clutter.
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Recommended modern code:
+    say "your text here";
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [INFO] Print with explicit newline — consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 337
+  Category: io_operations
+  Why this is an issue:
+    The Perl 5.10+ say() function automatically adds a newline, making code
+    cleaner and reducing visual clutter.
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Recommended modern code:
+    say "your text here";
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [INFO] Print with explicit newline — consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 338
+  Category: io_operations
+  Why this is an issue:
+    The Perl 5.10+ say() function automatically adds a newline, making code
+    cleaner and reducing visual clutter.
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Recommended modern code:
+    say "your text here";
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [INFO] Print with explicit newline — consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 339
+  Category: io_operations
+  Why this is an issue:
+    The Perl 5.10+ say() function automatically adds a newline, making code
+    cleaner and reducing visual clutter.
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Recommended modern code:
+    say "your text here";
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [INFO] Print with explicit newline — consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 342
+  Category: io_operations
+  Why this is an issue:
+    The Perl 5.10+ say() function automatically adds a newline, making code
+    cleaner and reducing visual clutter.
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Recommended modern code:
+    say "your text here";
+
+  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+
+  [INFO] Missing Perl version declaration                                 ← NEW
+  ID      : PERL-MISSING-VERSION
+  Line    : 1
+  Category: best_practice
+  Why this is an issue:
+    The script lacks a minimum Perl version declaration (e.g. use v5.20;).
+    Without it, the script may accidentally run on older Perl versions that
+    lack features or have incompatible behavior, leading to runtime errors
+    on deployment.
+  Suggested fix:
+    Add a version pragma after the shebang line.
+  Recommended modern code:
+    use v5.20;   # or use v5.32; for latest features
+
+================================================================================
+4. LINE-BY-LINE EXPLANATION
+================================================================================
+
+----------------------------------------------------------------------
+  Line    1 | #!/usr/bin/perl
+----------------------------------------------------------------------
+  Purpose     : Shebang / Interpreter declaration
+  Explanation : Declares the Perl interpreter path. Valid shebang line.
+                However, no version pragma (e.g. use v5.32;) is present,
+                meaning the script makes no guarantee about minimum Perl
+                version compatibility.
+
+  Issues at this line:
+    [i INFO] PERL-MISSING-VERSION — Add 'use v5.20;' or similar
+
+----------------------------------------------------------------------
+  Line    2 | use strict;
+----------------------------------------------------------------------
+  Purpose     : Module import — Pragma
+  Explanation : Enables strict mode, requiring variable declaration with
+                'my', 'our', or 'state'. This is a best practice for all
+                Perl scripts. No issues.
+
+----------------------------------------------------------------------
+  Line    3 | use warnings;
+----------------------------------------------------------------------
+  Purpose     : Module import — Pragma
+  Explanation : Enables diagnostic warnings for potential issues like
+                uninitialized values and deprecated constructs. No issues.
+
+----------------------------------------------------------------------
+  Line    4 | use JSON;
+----------------------------------------------------------------------
+  Purpose     : Module import — CPAN
+  Explanation : Loads the JSON module for encoding/decoding JSON-RPC
+                request/response payloads. No issues.
+
+----------------------------------------------------------------------
+  Line    5 | use IO::Socket::INET;
+----------------------------------------------------------------------
+  Purpose     : Module import — Core
+  Explanation : Loads IO::Socket::INET for TCP socket communication with
+                the MCP server. No issues.
+
+----------------------------------------------------------------------
+  Line    6 | use POSIX qw(strftime);
+----------------------------------------------------------------------
+  Purpose     : Module import — Core
+  Explanation : Loads the POSIX strftime function for timestamp formatting
+                in log entries. No issues.
+
+----------------------------------------------------------------------
+  Line    7 | (blank)
+----------------------------------------------------------------------
+  Purpose     : Whitespace
+  Explanation : Empty line for readability. No issues.
+
+----------------------------------------------------------------------
+  Lines  8–11 | # =====... MCP Server Test Suite ...
+----------------------------------------------------------------------
+  Purpose     : Block comment
+  Explanation : Multi-line comment describing the script's name and usage.
+                No issues.
+
+----------------------------------------------------------------------
+  Line   13 | # ---------- CONFIGURATION ----------
+----------------------------------------------------------------------
+  Purpose     : Section comment
+  Explanation : Section header comment for the configuration block. No issues.
+
+----------------------------------------------------------------------
+  Lines 14–17 | my $MCP_HOST = '127.0.0.1';  ...
+----------------------------------------------------------------------
+  Purpose     : Variable declaration — Configuration
+  Explanation : Declares four configuration variables: MCP_HOST (IP),
+                MCP_PORT (port), TIMEOUT (seconds), LOG_FILE (path).
+                No issues.
+
+----------------------------------------------------------------------
+  Line   19 | # -----------------------------------
+----------------------------------------------------------------------
+  Purpose     : Comment
+  Explanation : Decorative comment separator. No issues.
+
+----------------------------------------------------------------------
+  Lines 21–23 | my $pass_count = 0; ...
+----------------------------------------------------------------------
+  Purpose     : Variable declaration — State
+  Explanation : Declares pass/fail counters and an array to store test
+                result lines. No issues.
+
+----------------------------------------------------------------------
+  Lines 25–27 | # ===... HELPER: Logger ...
+----------------------------------------------------------------------
+  Purpose     : Section comment
+  Explanation : Section header for the log_result helper. No issues.
+
+----------------------------------------------------------------------
+  Line   28 | sub log_result {
+----------------------------------------------------------------------
+  Purpose     : Subroutine definition
+  Explanation : Defines log_result() which records test name, status, and
+                detail, pushes to @results, prints to stdout, and updates
+                pass/fail counters. No issues.
+
+----------------------------------------------------------------------
+  Lines 29–35 | my ($test_name, $status, $detail) = @_; ...
+----------------------------------------------------------------------
+  Purpose     : Subroutine body
+  Explanation : Body of log_result — extracts args, formats timestamp,
+                builds log line, stores result, prints, and updates counters.
+                No issues.
+
+----------------------------------------------------------------------
+  Line   33 | print "$line\n";
+----------------------------------------------------------------------
+  Purpose     : Input/Output — Print
+  Explanation : Prints the formatted log line to stdout with explicit \n.
+
+  Issues at this line:
+    [i INFO] PERL-MODERN-SAY — Replace with say()
+
+----------------------------------------------------------------------
+  Line   36 | }
+----------------------------------------------------------------------
+  Purpose     : Block terminator
+  Explanation : Closes log_result subroutine. No issues.
+
+----------------------------------------------------------------------
+  Lines 38–40 | # ===... HELPER: Send JSON-RPC ...
+----------------------------------------------------------------------
+  Purpose     : Section comment
+  Explanation : Section header for send_mcp_request helper. No issues.
+
+----------------------------------------------------------------------
+  Line   41 | sub send_mcp_request {
+----------------------------------------------------------------------
+  Purpose     : Subroutine definition
+  Explanation : Defines send_mcp_request() which sends a JSON-RPC request
+                to the MCP server and returns (success, response). No issues.
+
+----------------------------------------------------------------------
+  Lines 42–73 | my ($method, $params) = @_; ...
+----------------------------------------------------------------------
+  Purpose     : Subroutine body
+  Explanation : Body of send_mcp_request — connects via TCP, sends encoded
+                JSON-RPC request, reads response with alarm-based timeout,
+                decodes JSON, handles errors. No issues.
+
+----------------------------------------------------------------------
+  Line   75 | close($socket);
+----------------------------------------------------------------------
+  Purpose     : File management — Socket close
+  Explanation : Closes the TCP socket connection. Return value is ignored.
+
+  Issues at this line:
+    [? WARNING] PERL-UNCHECKED-CLOSE — Check return value
+
+----------------------------------------------------------------------
+  Lines 77–87 | if ($@ eq "timeout\n") { ...
+----------------------------------------------------------------------
+  Purpose     : Error handling
+  Explanation : Checks for timeout condition, decodes JSON response,
+                returns result tuple. No issues.
+
+----------------------------------------------------------------------
+  Line   88 | }
+----------------------------------------------------------------------
+  Purpose     : Block terminator
+  Explanation : Closes send_mcp_request subroutine.
+
+  Issues at this line:
+    [! ERROR] PERL-UNMATCHED-BRACE — Potential extra closing brace
+
+----------------------------------------------------------------------
+  Lines 90–92 | # ===... TEST 1: TCP Connectivity ...
+----------------------------------------------------------------------
+  Purpose     : Section comment
+  Explanation : Section header for test_connectivity. No issues.
+
+----------------------------------------------------------------------
+  Line   93 | sub test_connectivity {
+----------------------------------------------------------------------
+  Purpose     : Subroutine definition
+  Explanation : Defines TCP connectivity test. No issues.
+
+----------------------------------------------------------------------
+  Line   94 | print "\n--- TEST 1: TCP Connectivity ---\n";
+----------------------------------------------------------------------
+  Purpose     : Input/Output — Print
+  Explanation : Prints test banner with explicit \n.
+
+  Issues at this line:
+    [i INFO] PERL-MODERN-SAY — Replace with say()
+
+----------------------------------------------------------------------
+  Lines 95–106 | my $socket = IO::Socket::INET->new( ...
+----------------------------------------------------------------------
+  Purpose     : Test logic
+  Explanation : Opens TCP socket, checks connection, logs PASS or FAIL,
+                closes socket. No issues.
+
+----------------------------------------------------------------------
+  Line  102 | close($socket);
+----------------------------------------------------------------------
+  Purpose     : File management — Socket close
+  Explanation : Closes test socket. Return value is ignored.
+
+  Issues at this line:
+    [? WARNING] PERL-UNCHECKED-CLOSE — Check return value
+
+----------------------------------------------------------------------
+  Line  107 | }
+----------------------------------------------------------------------
+  Purpose     : Block terminator
+  Explanation : Closes test_connectivity. No issues.
+
+----------------------------------------------------------------------
+  Lines 109–111 | # ===... TEST 2: MCP Handshake ...
+----------------------------------------------------------------------
+  Purpose     : Section comment
+  Explanation : Section header for test_handshake. No issues.
+
+----------------------------------------------------------------------
+  Line  112 | sub test_handshake {
+----------------------------------------------------------------------
+  Purpose     : Subroutine definition
+  Explanation : Defines MCP handshake test. No issues.
+
+----------------------------------------------------------------------
+  Line  113 | print "\n--- TEST 2: MCP Handshake ---\n";
+----------------------------------------------------------------------
+  Purpose     : Input/Output — Print
+  Explanation : Prints test banner.
+
+  Issues at this line:
+    [i INFO] PERL-MODERN-SAY — Replace with say()
+
+----------------------------------------------------------------------
+  Lines 114–129 | my ($ok, $resp) = send_mcp_request(... ...
+----------------------------------------------------------------------
+  Purpose     : Test logic
+  Explanation : Sends initialize request, checks response structure,
+                logs PASS/FAIL. No issues.
+
+----------------------------------------------------------------------
+  Line  129 | }
+----------------------------------------------------------------------
+  Purpose     : Block terminator
+  Explanation : Closes test_handshake. No issues.
+
+----------------------------------------------------------------------
+  Lines 131–133 | # ===... TEST 3: List Available Tools ...
+----------------------------------------------------------------------
+  Purpose     : Section comment
+  Explanation : Section header for test_list_tools. No issues.
+
+----------------------------------------------------------------------
+  Line  134 | sub test_list_tools {
+----------------------------------------------------------------------
+  Purpose     : Subroutine definition
+  Explanation : Defines tool listing test. No issues.
+
+----------------------------------------------------------------------
+  Line  135 | print "\n--- TEST 3: List Available Tools ---\n";
+----------------------------------------------------------------------
+  Purpose     : Input/Output — Print
+  Explanation : Prints test banner.
+
+  Issues at this line:
+    [i INFO] PERL-MODERN-SAY — Replace with say()
+
+----------------------------------------------------------------------
+  Lines 136–150 | my ($ok, $resp) = send_mcp_request(... ...
+----------------------------------------------------------------------
+  Purpose     : Test logic
+  Explanation : Calls tools/list, iterates results, logs PASS with tool
+                names or FAIL. No issues.
+
+----------------------------------------------------------------------
+  Line  150 | }
+----------------------------------------------------------------------
+  Purpose     : Block terminator
+  Explanation : Closes test_list_tools. No issues.
+
+----------------------------------------------------------------------
+  Lines 152–154 | # ===... TEST 4: Modern Script Analysis ...
+----------------------------------------------------------------------
+  Purpose     : Section comment
+  Explanation : Section header for test_analyze_modern_script.
+
+  Issues at this line:
+    [i INFO] PERL-EDA-COMMENT — EDA tool command reference
+
+----------------------------------------------------------------------
+  Line  155 | sub test_analyze_modern_script {
+----------------------------------------------------------------------
+  Purpose     : Subroutine definition
+  Explanation : Defines modern script analysis test. No issues.
+
+----------------------------------------------------------------------
+  Line  156 | print "\n--- TEST 4: Analyze Modern Perl Script ---\n";
+----------------------------------------------------------------------
+  Purpose     : Input/Output — Print
+  Explanation : Prints test banner.
+
+  Issues at this line:
+    [i INFO] PERL-MODERN-SAY — Replace with say()
+
+----------------------------------------------------------------------
+  Lines 158–185 | my $modern_perl = <<'END_PERL'; ...
+----------------------------------------------------------------------
+  Purpose     : Test logic
+  Explanation : Embeds a modern Perl script, sends for analysis, checks
+                response. No issues on main script lines.
+
+----------------------------------------------------------------------
+  Line  185 | }
+----------------------------------------------------------------------
+  Purpose     : Block terminator
+  Explanation : Closes test_analyze_modern_script. No issues.
+
+----------------------------------------------------------------------
+  Lines 187–189 | # ===... TEST 5: Old/Deprecated Patterns ...
+----------------------------------------------------------------------
+  Purpose     : Section comment
+  Explanation : Section header for test_detect_old_patterns. No issues.
+
+----------------------------------------------------------------------
+  Line  190 | sub test_detect_old_patterns {
+----------------------------------------------------------------------
+  Purpose     : Subroutine definition
+  Explanation : Defines old pattern detection test. No issues.
+
+----------------------------------------------------------------------
+  Line  191 | print "\n--- TEST 5: Detect Old/Deprecated Perl Patterns ---\n";
+----------------------------------------------------------------------
+  Purpose     : Input/Output — Print
+  Explanation : Prints test banner.
+
+  Issues at this line:
+    [i INFO] PERL-MODERN-SAY — Replace with say()
+
+----------------------------------------------------------------------
+  Lines 193–229 | # Script with intentionally OLD patterns ... ...
+----------------------------------------------------------------------
+  Purpose     : Test logic
+  Explanation : Embeds old-style Perl script (no strict, bareword handles,
+                typeglobs, etc.), sends for analysis, checks if server
+                flagged deprecated patterns. No issues on main script lines.
+
+----------------------------------------------------------------------
+  Line  203 | open(FILE, ">out.txt");
+----------------------------------------------------------------------
+  Purpose     : Input/Output — File open (embedded test)
+  Explanation : Inside the $old_perl heredoc — deprecated 2-arg open with
+                bareword filehandle. Flagged in the embedded context.
+
+  Issues at this line:
+    [? WARNING] PERL-OLD-OPEN — Use 3-arg open with lexical handle
+
+----------------------------------------------------------------------
+  Line  229 | }
+----------------------------------------------------------------------
+  Purpose     : Block terminator
+  Explanation : Closes test_detect_old_patterns. No issues.
+
+----------------------------------------------------------------------
+  Lines 231–233 | # ===... TEST 6: Malformed Input ...
+----------------------------------------------------------------------
+  Purpose     : Section comment
+  Explanation : Section header for test_malformed_script. No issues.
+
+----------------------------------------------------------------------
+  Line  234 | sub test_malformed_script {
+----------------------------------------------------------------------
+  Purpose     : Subroutine definition
+  Explanation : Defines malformed input test. No issues.
+
+----------------------------------------------------------------------
+  Line  235 | print "\n--- TEST 6: Malformed Perl Input ---\n";
+----------------------------------------------------------------------
+  Purpose     : Input/Output — Print
+  Explanation : Prints test banner.
+
+  Issues at this line:
+    [i INFO] PERL-MODERN-SAY — Replace with say()
+
+----------------------------------------------------------------------
+  Lines 237–255 | my $bad_perl = 'sub broken { my $x = ; }'; ...
+----------------------------------------------------------------------
+  Purpose     : Test logic
+  Explanation : Sends syntactically invalid Perl, checks server response
+                for error/syntax keywords. No issues.
+
+----------------------------------------------------------------------
+  Line  255 | }
+----------------------------------------------------------------------
+  Purpose     : Block terminator
+  Explanation : Closes test_malformed_script. No issues.
+
+----------------------------------------------------------------------
+  Lines 257–259 | # ===... TEST 7: Empty Script Edge Case ...
+----------------------------------------------------------------------
+  Purpose     : Section comment
+  Explanation : Section header for test_empty_script. No issues.
+
+----------------------------------------------------------------------
+  Line  260 | sub test_empty_script {
+----------------------------------------------------------------------
+  Purpose     : Subroutine definition
+  Explanation : Defines empty script edge case test. No issues.
+
+----------------------------------------------------------------------
+  Line  261 | print "\n--- TEST 7: Empty Script Edge Case ---\n";
+----------------------------------------------------------------------
+  Purpose     : Input/Output — Print
+  Explanation : Prints test banner.
+
+  Issues at this line:
+    [i INFO] PERL-MODERN-SAY — Replace with say()
+
+----------------------------------------------------------------------
+  Lines 263–278 | my ($ok, $resp) = send_mcp_request(... ...
+----------------------------------------------------------------------
+  Purpose     : Test logic
+  Explanation : Sends empty string as code, checks server handles it
+                without crashing. No issues.
+
+----------------------------------------------------------------------
+  Line  278 | }
+----------------------------------------------------------------------
+  Purpose     : Block terminator
+  Explanation : Closes test_empty_script. No issues.
+
+----------------------------------------------------------------------
+  Lines 280–282 | # ===... TEST 8: Latency Check ...
+----------------------------------------------------------------------
+  Purpose     : Section comment
+  Explanation : Section header for test_latency. No issues.
+
+----------------------------------------------------------------------
+  Line  283 | sub test_latency {
+----------------------------------------------------------------------
+  Purpose     : Subroutine definition
+  Explanation : Defines latency measurement test. No issues.
+
+----------------------------------------------------------------------
+  Line  284 | print "\n--- TEST 8: Response Latency ---\n";
+----------------------------------------------------------------------
+  Purpose     : Input/Output — Print
+  Explanation : Prints test banner.
+
+  Issues at this line:
+    [i INFO] PERL-MODERN-SAY — Replace with say()
+
+----------------------------------------------------------------------
+  Lines 286–300 | my $start = time(); ...
+----------------------------------------------------------------------
+  Purpose     : Test logic
+  Explanation : Measures round-trip time for tools/list, logs PASS/FAIL
+                based on TIMEOUT threshold. No issues.
+
+----------------------------------------------------------------------
+  Line  300 | }
+----------------------------------------------------------------------
+  Purpose     : Block terminator
+  Explanation : Closes test_latency. No issues.
+
+----------------------------------------------------------------------
+  Lines 302–304 | # ===... WRITE RESULTS TO LOG FILE ...
+----------------------------------------------------------------------
+  Purpose     : Section comment
+  Explanation : Section header for write_log. No issues.
+
+----------------------------------------------------------------------
+  Line  305 | sub write_log {
+----------------------------------------------------------------------
+  Purpose     : Subroutine definition
+  Explanation : Defines write_log() which writes test results to a file.
+                Uses modern 3-arg open with lexical filehandle. No issues.
+
+----------------------------------------------------------------------
+  Lines 306–316 | open(my $fh, '>', $LOG_FILE) or die ... ...
+----------------------------------------------------------------------
+  Purpose     : Subroutine body
+  Explanation : Opens log file, writes header, results, and summary,
+                then closes. The close on line 316 does not check return.
+
+  Tip         : open() on line 306 correctly uses 3-arg form with $!.
+                close() on line 316 should check return value.
+
+----------------------------------------------------------------------
+  Line  316 | close($fh);
+----------------------------------------------------------------------
+  Purpose     : File management — File close
+  Explanation : Closes the log filehandle. Return value is not checked.
+
+  Issues at this line:
+    [? WARNING] PERL-UNCHECKED-CLOSE — Check return value
+
+----------------------------------------------------------------------
+  Line  317 | }
+----------------------------------------------------------------------
+  Purpose     : Block terminator
+  Explanation : Closes write_log. No issues.
+
+----------------------------------------------------------------------
+  Lines 319–321 | # ===... MAIN — Run All Tests ...
+----------------------------------------------------------------------
+  Purpose     : Section comment
+  Explanation : Section header for main execution block. No issues.
+
+----------------------------------------------------------------------
+  Lines 322–325 | print "=" x 60 . "\n"; ...
+----------------------------------------------------------------------
+  Purpose     : Input/Output — Print banner
+  Explanation : Prints the test suite banner with script name and target.
+
+  Issues at these lines:
+    [i INFO] PERL-MODERN-SAY — Replace print with say() (lines 322, 323, 324, 325)
+
+----------------------------------------------------------------------
+  Lines 327–334 | test_connectivity(); ... test_latency();
+----------------------------------------------------------------------
+  Purpose     : Function calls
+  Explanation : Calls all 8 test subroutines in sequence. No issues.
+
+----------------------------------------------------------------------
+  Line  336 | # Final Summary
+----------------------------------------------------------------------
+  Purpose     : Comment
+  Explanation : Comment before final summary output. No issues.
+
+----------------------------------------------------------------------
+  Lines 337–339 | print "\n" . "=" x 60 . "\n"; ...
+----------------------------------------------------------------------
+  Purpose     : Input/Output — Print summary
+  Explanation : Prints summary banner with pass/fail counts.
+
+  Issues at these lines:
+    [i INFO] PERL-MODERN-SAY — Replace print with say() (lines 337, 338, 339)
+
+----------------------------------------------------------------------
+  Line  341 | write_log();
+----------------------------------------------------------------------
+  Purpose     : Function call
+  Explanation : Calls write_log to persist results to disk. No issues.
+
+----------------------------------------------------------------------
+  Line  342 | print "\nFull results saved to: $LOG_FILE\n";
+----------------------------------------------------------------------
+  Purpose     : Input/Output — Print
+  Explanation : Prints confirmation message.
+
+  Issues at this line:
+    [i INFO] PERL-MODERN-SAY — Replace with say()
+
+----------------------------------------------------------------------
+  Line  344 | exit($fail_count > 0 ? 1 : 0);
+----------------------------------------------------------------------
+  Purpose     : Process termination
+  Explanation : Exits with non-zero code if any tests failed. No issues.
+
+================================================================================
+5. SECURITY ANALYSIS                                                  ← NEW
+================================================================================
+
+  Overall Security Risk : LOW
+
+  Finding 1 — Unchecked close() return value (socket)
+  Severity : Low
+  Line     : 75, 102
+  Detail   : close() on a socket handle does not check the return value.
+             If the TCP connection was interrupted during data transmission,
+             the close may fail silently, potentially masking incomplete
+             writes. In a test harness this could lead to false PASS results.
+
+  Finding 2 — Unchecked close() return value (file)
+  Severity : Low
+  Line     : 316
+  Detail   : close() on the log filehandle ignores errors. On network
+             filesystems (NFS, SMB), data may not be flushed to disk until
+             close(), and a failure here loses the log output silently.
+
+  Finding 3 — No input validation on socket responses
+  Severity : Low
+  Line     : 64–70
+  Detail   : The script reads raw data from the socket and evaluates it
+             as JSON. While the eval block catches parse errors, there is
+             no size limit on the response buffer. A malicious or buggy
+             server could send unbounded data, causing memory exhaustion.
+  Suggested fix:
+    Add a maximum response size check in the while loop.
+
+  Finding 4 — die without $! for open error on line 306
+  Severity : Low
+  Line     : 306
+  Detail   : The open() call correctly includes $! in the die message.
+             No issue found — this is good practice.
+
+  Finding 5 — Hardcoded credentials / sensitive paths
+  Severity : None
+  Detail   : No hardcoded credentials, passwords, or sensitive file paths
+             were detected in this script. Good practice.
+
+================================================================================
+6. MODERNIZATION SUGGESTIONS
+================================================================================
+
+  The following modernizations are recommended (priority order):
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │  PRIORITY 1 — Add Perl version declaration (low effort, high impact)   │
+  └─────────────────────────────────────────────────────────────────────────┘
+  Suggestion : PERL-MISSING-VERSION
+  Location   : Line 1 (after shebang)
+  Code       :
+    #!/usr/bin/perl
+    use v5.20;
+    use strict;
+    use warnings;
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │  PRIORITY 2 — Check close() return values (low effort, safety)         │
+  └─────────────────────────────────────────────────────────────────────────┘
+  Suggestion : PERL-UNCHECKED-CLOSE
+  Location   : Lines 75, 102, 316
+  Code       :
+    close($socket) or warn "Failed to close socket: $!";
+    # ... and ...
+    close($fh) or warn "Failed to close log file '$LOG_FILE': $!";
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │  PRIORITY 3 — Replace print+\\n with say() (cosmetic, modern style)    │
+  └─────────────────────────────────────────────────────────────────────────┘
+  Suggestion : PERL-MODERN-SAY
+  Location   : 18 locations throughout the script
+  Code       :
+    use feature 'say';         # add at top of script
+    say "your text here";      # instead of print "your text here\n";
+
+  ─────────────────────────────────────────────────────────────────────────
+
+  FULLY MODERNIZED SCRIPT (excerpt showing key changes):
+  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+    #!/usr/bin/perl
+    use v5.20;
+    use strict;
+    use warnings;
+    use feature 'say';
+    use JSON;
+    use IO::Socket::INET;
+    use POSIX qw(strftime);
+
+    # --- Configuration ---
+    my $MCP_HOST = '127.0.0.1';
+    my $MCP_PORT = 3000;
+    my $TIMEOUT  = 10;
+    my $LOG_FILE = 'mcp_test_results.log';
+
+    # --- Helper: Logger ---
+    sub log_result {
+        my ($test_name, $status, $detail) = @_;
+        my $timestamp = strftime("%Y-%m-%d %H:%M:%S", localtime);
+        my $line = "[$timestamp] [$status] $test_name => $detail";
+        push @results, $line;
+        say $line;                                       # ← modernized
+        if ($status eq 'PASS') { $pass_count++; }
+        else                   { $fail_count++; }
+    }
+
+    # --- Helper: Send JSON-RPC ---
+    sub send_mcp_request {
+        my ($method, $params) = @_;
+        my $socket = IO::Socket::INET->new(
+            PeerAddr => $MCP_HOST,
+            PeerPort => $MCP_PORT,
+            Proto    => 'tcp',
+            Timeout  => $TIMEOUT,
+        );
+        unless ($socket) {
+            return (0, "Cannot connect to MCP server at $MCP_HOST:$MCP_PORT — $!");
+        }
+        # ... request/response logic ...
+        close($socket) or warn "Failed to close socket: $!";   # ← modernized
+        # ... error handling ...
+    }
+
+    # ... (similar modernization applied to all other subroutines) ...
+
+    # --- Write log file ---
+    sub write_log {
+        open(my $fh, '>', $LOG_FILE) or die "Cannot write log: $!";
+        say $fh "=" x 60;                                    # ← modernized
+        say $fh "MCP SERVER TEST RESULTS";                    # ← modernized
+        # ...
+        close($fh) or warn "Cannot close log file: $!";       # ← modernized
+    }
+
+  Benefits of Modernization:
+    • Improved code readability and maintainability
+    • Better performance and reduced memory usage
+    • Enhanced security — eliminates silent I/O failures
+    • Compatibility with modern Perl versions (5.32+)
+    • Easier integration with modern EDA tools
+    • Declared version ensures minimum Perl compatibility
+    • Safer I/O via checked close() return values
+
+================================================================================
+7. MISSING DETECTIONS (MCP SERVER GAPS)                              ← NEW
+================================================================================
+
+  The following issues exist in the script but were NOT caught by the server.
+  These represent rule enhancements to add to the MCP analyzer:
+
+  Gap 1 — Unchecked close() return value
+  Line    : 75, 102, 316
+  Rule ID : PERL-UNCHECKED-CLOSE
+  Action  : Add detection: close(...) not followed by 'or warn' / 'or die'
+            → flag with WARNING. Context: file and socket handles.
+
+  Gap 2 — No Perl version declaration
+  Line    : 1
+  Rule ID : PERL-MISSING-VERSION
+  Action  : Flag absence of 'use v5.XX' or 'use VERSION' after shebang
+            → flag with INFO. Recommend minimum version based on features used.
+
+  Gap 3 — die without $! for file/socket errors
+  Line    : N/A (no instances in this script, but rule should exist)
+  Rule ID : PERL-DIE-NO-ERRNO
+  Action  : When die() follows open/close/socket ops, check that $! system
+            error is included in the message → flag with WARNING.
+
+  Gap 4 — chop vs chomp detection
+  Line    : N/A (not present in this script, but should be a rule)
+  Rule ID : PERL-CHOP-VS-CHOMP
+  Action  : Add regex pattern: /\bchop\b/ used on input data → flag with
+            WARNING. Suggest chomp as safer alternative.
+
+  Gap 5 — No input size limit on socket reads
+  Line    : 68
+  Rule ID : PERL-UNBOUNDED-SOCKET-READ
+  Action  : Flag while(<$socket>) loops without a maximum size check
+            → flag with INFO. Suggests adding a byte limit to prevent
+            memory exhaustion from malicious servers.
+
+================================================================================
+                    END OF REPORT
+================================================================================
+  Generated by MPC Protocol - Perl Script Analyzer  v2.0.0
+  Original analysis : 2026-05-15 23:26:24
+  Report enhanced   : 2026-05-27
+  Total issues (original) : 20
+  Total issues (updated)  : 24  (+4 newly identified)
+  Server gaps identified  : 5   (recommended rule additions)
+================================================================================

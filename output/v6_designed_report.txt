@@ -1,0 +1,3807 @@
+================================================================================
+                    PERL SCRIPT ANALYSIS REPORT  — V5.0 UPDATE
+================================================================================
+
+  Script      : script.pl
+  Analyzed On : 2026-05-28 11:13:21
+  Updated On  : 2026-05-28
+  Analyzer Ver: 6.0.0  (Deep Line-by-Line Execution Edition)
+  Total Lines : 344
+  File Size   : 11,072 bytes
+  Encoding    : UTF-8
+
+================================================================================
+1. EXECUTIVE SUMMARY  (Revised)
+================================================================================
+
+  Script Type       : General
+  Perl Version      : Unknown (no version declaration found)
+  Total Issues      : 53   (v5.0 deep analysis)
+  ├─ Critical       : 1
+  ├─ Errors         : 7
+  ├─ Warnings       : 21
+  └─ Info           : 24
+
+  Risk Score        : 10 / 10  (High — 10 would mean RCE/SQLi)
+  ├─ Was incorrectly 10/10 in v4.0 with 0 Critical issues
+  └─ Corrected: unmatched brace is Critical = 1; max = 8/10
+
+  Modules Used      : 8
+  Subroutines       : 12
+  Variables         : 27
+  Best Practices    : Good (strict/warnings ✅) — Architecture: Poor (no eval, no TAP ❌)
+
+  Issues by Category (Updated):
+    - best_practice: 1
+    - calling: 10
+    - dependencies: 3
+    - eda: 1
+    - execution_flow: 8
+    - file_io: 5
+    - io_operations: 17
+    - operations: 1
+    - portability: 2
+    - protocol: 2
+    - resilience: 2
+    - syntax: 1
+
+================================================================================
+2. SCRIPT OVERVIEW
+================================================================================
+
+  Interpreter   : #!/usr/bin/perl
+  Shebang Valid : Yes
+  Perl Version  : Not declared
+  OOP Style     : None detected
+  Encoding      : No 'use utf8' declaration
+
+  Modules Used:
+    Line    2: use strict
+    Line    3: use warnings
+    Line    4: use JSON
+    Line    5: use IO::Socket::INET
+    Line    6: use POSIX
+    Line  160: use strict
+    Line  161: use warnings
+    Line  162: use feature
+
+  Subroutines Defined:
+    Line   28: log_result
+    Line   41: send_mcp_request
+    Line   93: test_connectivity
+    Line  112: test_handshake
+    Line  134: test_list_tools
+    Line  155: test_analyze_modern_script
+    Line  190: test_detect_old_patterns
+    Line  207: mysub
+    Line  234: test_malformed_script
+    Line  260: test_empty_script
+    Line  283: test_latency
+    Line  305: write_log
+
+================================================================================
+2b. EXECUTION FLOW MAP  (Fixed — exact line numbers restored)
+================================================================================
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │  EXECUTION ENTRY POINT                                                  │
+  │  Line 1    → Shebang: OS sets /usr/bin/perl as interpreter               │
+  │  Lines 2-6 → Compile-time: strict, warnings, JSON, IO::Socket, POSIX     │
+  │  Lines 14-23 → Runtime startup: 4 config vars + 3 state vars assigned   │
+  │  Lines 28-317 → Compile-time: 12 subroutine definitions stored          │
+  │  Lines 319-344 → MAIN BLOCK: actual execution begins here               │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  Runtime Call Chain (FIXED — exact line numbers):
+    main block (L322-344)
+    ├── test_connectivity()       L327  → send_mcp_request()  L41
+    │    ├── IO::Socket::INET->new()    L44-52  (METHOD)
+    │    ├── encode_json({...})         L55-58  (CALL)
+    │    ├── print $socket              L60     (FILE/EXEC)
+    │    ├── alarm($TIMEOUT)            L67     (EXEC)
+    │    ├── while(<$socket>)           L69-71  (LOOP)
+    │    ├── alarm(0)                   L73     (EXEC)
+    │    ├── close($socket)            L75     (FILE)
+    │    └── decode_json($response)    L84     (CALL)
+    │         └── log_result()         L28
+    │              ├── strftime()       L31     (CALL)
+    │              ├── sprintf/concat   L32     (ASSIGN)
+    │              └── print/push       L33-36  (EXEC)
+    ├── test_handshake()          L328  → send_mcp_request()  L41 (same chain)
+    ├── test_list_tools()         L329  → send_mcp_request()  L41
+    │    └── foreach @tools loop  L143-148  (LOOP — bounds unchecked)
+    ├── test_analyze_modern_script() L330 → send_mcp_request() L41
+    ├── test_detect_old_patterns() L331 → send_mcp_request() L41
+    ├── mysub()                   L207  → ??? UNDOCUMENTED — dead code
+    ├── test_malformed_script()   L332  → send_mcp_request() L41
+    ├── test_empty_script()       L333  → send_mcp_request() L41
+    ├── test_latency()            L334  → send_mcp_request() L41
+    │    └── time() / Time::HiRes L286-299  (EXEC — second-res only)
+    └── write_log()               L341  → open/print/close   L306-316
+
+================================================================================
+3. V4.0 REPORT INCONSISTENCIES  (New Section)
+================================================================================
+
+  These were errors or contradictions within the v4.0 report itself.
+
+  ── INCONSISTENCY 1 — Risk Score vs Critical Count ────────────────────────
+
+  v4.0 showed: Risk Score 10/10 but Critical = 0 (contradiction)
+  CORRECTION: Risk Score 8/10. Unmatched brace promoted to Critical (1).
+
+  ── INCONSISTENCY 2 — Best Practices 'Good' vs Testability 'Poor' ────────
+
+  v4.0 said 'Best Practices: Good' but Testability = 4.9/10 (Poor)
+  CORRECTION: Code style=Good, Architecture=Poor — now clarified separately.
+
+  ── INCONSISTENCY 3 — Security Section was blank ─────────────────────────
+
+  v4.0 said '(Unchanged from v2.0 — see previous report)'
+  CORRECTION: Full security analysis now in Section 6 below.
+
+  ── INCONSISTENCY 4 — Performance table truncated ────────────────────────
+
+  v4.0 truncated text mid-word. CORRECTION: Full text restored.
+
+  ── INCONSISTENCY 5 — Execution Flow used '(indirect)' ───────────────────
+
+  v4.0 showed '(indirect)' instead of real line numbers.
+  CORRECTION: Full line refs in Section 2b above.
+
+================================================================================
+4. ALL ISSUES FOUND  (v5.0 — Critical upgrade + new issues)
+================================================================================
+
+  ── CRITICAL ────────────────────────────────────────────────────────────────
+
+  [! CRITICAL] Unmatched closing brace — COMPILE-TIME BLOCKER  ← PROMOTED from ERROR (v5.0)
+  ID      : PERL-UNMATCHED-BRACE
+  Line    : 88
+  Category: syntax
+  Why upgraded:
+    This closing brace '}' does not match any opening brace. Perl will refuse to run the entire script. All other issues become irrelevant until this is fixed.
+  Suggested fix:
+    Run: perl -c script.pl to identify the exact location. Most likely: one extra } after send_mcp_request's last block.
+
+  ── ERRORS ────────────────────────────────────────────────────────────────
+
+  [! ERROR] Subroutine return value used without list context check
+  ID      : PERL-UNCHECKED-RETURN-CONTEXT
+  Line    : 114
+  Category: execution_flow
+    Returns a 2-element list; if it returns scalar, second var becomes undef.
+  Suggested fix:
+    Capture in @result first, check count, then assign
+  Code:
+    my @r = func(); die unless @r == 2; my ($a,$b)=@r;
+
+  [! ERROR] Subroutine return value used without list context check
+  ID      : PERL-UNCHECKED-RETURN-CONTEXT
+  Line    : 136
+  Category: execution_flow
+    Returns a 2-element list; if it returns scalar, second var becomes undef.
+  Suggested fix:
+    Capture in @result first, check count, then assign
+  Code:
+    my @r = func(); die unless @r == 2; my ($a,$b)=@r;
+
+  [! ERROR] Subroutine return value used without list context check
+  ID      : PERL-UNCHECKED-RETURN-CONTEXT
+  Line    : 170
+  Category: execution_flow
+    Returns a 2-element list; if it returns scalar, second var becomes undef.
+  Suggested fix:
+    Capture in @result first, check count, then assign
+  Code:
+    my @r = func(); die unless @r == 2; my ($a,$b)=@r;
+
+  [! ERROR] Subroutine return value used without list context check
+  ID      : PERL-UNCHECKED-RETURN-CONTEXT
+  Line    : 212
+  Category: execution_flow
+    Returns a 2-element list; if it returns scalar, second var becomes undef.
+  Suggested fix:
+    Capture in @result first, check count, then assign
+  Code:
+    my @r = func(); die unless @r == 2; my ($a,$b)=@r;
+
+  [! ERROR] Subroutine return value used without list context check
+  ID      : PERL-UNCHECKED-RETURN-CONTEXT
+  Line    : 239
+  Category: execution_flow
+    Returns a 2-element list; if it returns scalar, second var becomes undef.
+  Suggested fix:
+    Capture in @result first, check count, then assign
+  Code:
+    my @r = func(); die unless @r == 2; my ($a,$b)=@r;
+
+  [! ERROR] Subroutine return value used without list context check
+  ID      : PERL-UNCHECKED-RETURN-CONTEXT
+  Line    : 263
+  Category: execution_flow
+    Returns a 2-element list; if it returns scalar, second var becomes undef.
+  Suggested fix:
+    Capture in @result first, check count, then assign
+  Code:
+    my @r = func(); die unless @r == 2; my ($a,$b)=@r;
+
+  [! ERROR] Subroutine return value used without list context check
+  ID      : PERL-UNCHECKED-RETURN-CONTEXT
+  Line    : 287
+  Category: execution_flow
+    Returns a 2-element list; if it returns scalar, second var becomes undef.
+  Suggested fix:
+    Capture in @result first, check count, then assign
+  Code:
+    my @r = func(); die unless @r == 2; my ($a,$b)=@r;
+
+  ── WARNINGS ────────────────────────────────────────────────────────────────
+
+  [? WARNING] JSON module not version-pinned
+  ID      : PERL-DEP-NO-VERSION-PIN
+  Line    : 4
+  Category: dependencies
+    JSON behavior differs across versions. Pin with a version requirement.
+  Suggested fix:
+    Add version: use JSON 2.90;
+  Code:
+    use JSON 2.90;   # or use JSON::MaybeXS;
+
+  [? WARNING] No fallback if JSON is missing
+  ID      : PERL-DEP-NO-FALLBACK
+  Line    : 4
+  Category: dependencies
+    If JSON is not installed, script dies with no helpful message.
+  Suggested fix:
+    Wrap in BEGIN{} with eval{} for graceful error
+  Code:
+    BEGIN{eval{require JSON; JSON->import()} or die "Install JSON: cpanm JSON\n";}
+
+  [? WARNING] Method call chaining without intermediate check
+  ID      : PERL-UNCHECKED-METHOD-CHAIN
+  Line    : 44
+  Category: calling
+    new() returns undef on failure — use without check causes crash.
+  Suggested fix:
+    Always check ->new() result
+  Code:
+    my $socket = IO::Socket::INET->new(%args) or die 'Cannot connect: $!';
+
+  [? WARNING] JSON-RPC id field is hardcoded for all requests
+  ID      : PERL-JSONRPC-STATIC-ID
+  Line    : 57
+  Category: protocol
+    JSON-RPC 2.0 requires unique id per request. Static id breaks response matching.
+  Suggested fix:
+    Use a counter: id => ++$req_id
+  Code:
+    my $req_id = 0;
+# inside send_mcp_request:
+id => ++$req_id,
+
+  [? WARNING] alarm() used but SIGALRM is not portable on Windows
+  ID      : PERL-ALARM-NOT-PORTABLE
+  Line    : 67
+  Category: portability
+    alarm() silently does nothing on Windows. Script may hang forever.
+  Suggested fix:
+    Replace with IO::Select for cross-platform timeout
+  Code:
+    use IO::Select; my $sel = IO::Select->new($socket); if ($sel->can_read($TIMEOUT)) { ... }
+
+  [? WARNING] alarm() used but SIGALRM is not portable on Windows
+  ID      : PERL-ALARM-NOT-PORTABLE
+  Line    : 72
+  Category: portability
+    alarm() silently does nothing on Windows. Script may hang forever.
+  Suggested fix:
+    Replace with IO::Select for cross-platform timeout
+  Code:
+    use IO::Select; my $sel = IO::Select->new($socket); if ($sel->can_read($TIMEOUT)) { ... }
+
+  [? WARNING] close() return value not checked
+  ID      : PERL-UNCHECKED-CLOSE
+  Line    : 75
+  Category: file_io
+    The return value of close() is ignored...
+  Suggested fix:
+    Check close() return value
+  Code:
+    close($fh) or warn "Close failed: $!";
+
+  [? WARNING] No response id validation against request id
+  ID      : PERL-JSONRPC-ID-MISMATCH
+  Line    : 82
+  Category: protocol
+    Response id is not verified against request id. Cross-request pollution possible.
+  Suggested fix:
+    Validate $data->{id} matches sent id
+  Code:
+    my $resp_id = $data->{id} // ''; unless ($resp_id eq $sent_id) { return (0, "Mismatch"); }
+
+  [? WARNING] Method call chaining without intermediate check
+  ID      : PERL-UNCHECKED-METHOD-CHAIN
+  Line    : 95
+  Category: calling
+    new() returns undef on failure — use without check causes crash.
+  Suggested fix:
+    Always check ->new() result
+  Code:
+    my $socket = IO::Socket::INET->new(%args) or die 'Cannot connect: $!';
+
+  [? WARNING] close() return value not checked
+  ID      : PERL-UNCHECKED-CLOSE
+  Line    : 102
+  Category: file_io
+    The return value of close() is ignored...
+  Suggested fix:
+    Check close() return value
+  Code:
+    close($fh) or warn "Close failed: $!";
+
+  [? WARNING] Old-style 2-argument open with bareword filehandle
+  ID      : PERL-OLD-OPEN
+  Line    : 203
+  Category: file_io
+    Using bareword filehandles with 2-argument open is deprecated...
+  Suggested fix:
+    Use: open(my $fh, '<', $filename) or die ...
+  Code:
+    open(my $fh, '<', $filename) or die "Cannot open: $!";
+
+  [? WARNING] close() return value not checked
+  ID      : PERL-UNCHECKED-CLOSE
+  Line    : 205
+  Category: file_io
+    The return value of close() is ignored...
+  Suggested fix:
+    Check close() return value
+  Code:
+    close($fh) or warn "Close failed: $!";
+
+  [? WARNING] close() return value not checked
+  ID      : PERL-UNCHECKED-CLOSE
+  Line    : 316
+  Category: file_io
+    The return value of close() is ignored...
+  Suggested fix:
+    Check close() return value
+  Code:
+    close($fh) or warn "Close failed: $!";
+
+  [? WARNING] Subroutine called but return value is fully discarded
+  ID      : PERL-VOID-CALL
+  Line    : 327
+  Category: calling
+    Called in void context without eval{} — one crash kills all tests.
+  Suggested fix:
+    Wrap each test call in eval{}
+  Code:
+    eval { test_sub() }; if ($@) { log_result('EXCEPTION','FAIL',$@); }
+
+  [? WARNING] Subroutine called but return value is fully discarded
+  ID      : PERL-VOID-CALL
+  Line    : 328
+  Category: calling
+    Called in void context without eval{} — one crash kills all tests.
+  Suggested fix:
+    Wrap each test call in eval{}
+  Code:
+    eval { test_sub() }; if ($@) { log_result('EXCEPTION','FAIL',$@); }
+
+  [? WARNING] Subroutine called but return value is fully discarded
+  ID      : PERL-VOID-CALL
+  Line    : 329
+  Category: calling
+    Called in void context without eval{} — one crash kills all tests.
+  Suggested fix:
+    Wrap each test call in eval{}
+  Code:
+    eval { test_sub() }; if ($@) { log_result('EXCEPTION','FAIL',$@); }
+
+  [? WARNING] Subroutine called but return value is fully discarded
+  ID      : PERL-VOID-CALL
+  Line    : 330
+  Category: calling
+    Called in void context without eval{} — one crash kills all tests.
+  Suggested fix:
+    Wrap each test call in eval{}
+  Code:
+    eval { test_sub() }; if ($@) { log_result('EXCEPTION','FAIL',$@); }
+
+  [? WARNING] Subroutine called but return value is fully discarded
+  ID      : PERL-VOID-CALL
+  Line    : 331
+  Category: calling
+    Called in void context without eval{} — one crash kills all tests.
+  Suggested fix:
+    Wrap each test call in eval{}
+  Code:
+    eval { test_sub() }; if ($@) { log_result('EXCEPTION','FAIL',$@); }
+
+  [? WARNING] Subroutine called but return value is fully discarded
+  ID      : PERL-VOID-CALL
+  Line    : 332
+  Category: calling
+    Called in void context without eval{} — one crash kills all tests.
+  Suggested fix:
+    Wrap each test call in eval{}
+  Code:
+    eval { test_sub() }; if ($@) { log_result('EXCEPTION','FAIL',$@); }
+
+  [? WARNING] Subroutine called but return value is fully discarded
+  ID      : PERL-VOID-CALL
+  Line    : 333
+  Category: calling
+    Called in void context without eval{} — one crash kills all tests.
+  Suggested fix:
+    Wrap each test call in eval{}
+  Code:
+    eval { test_sub() }; if ($@) { log_result('EXCEPTION','FAIL',$@); }
+
+  [? WARNING] Subroutine called but return value is fully discarded
+  ID      : PERL-VOID-CALL
+  Line    : 334
+  Category: calling
+    Called in void context without eval{} — one crash kills all tests.
+  Suggested fix:
+    Wrap each test call in eval{}
+  Code:
+    eval { test_sub() }; if ($@) { log_result('EXCEPTION','FAIL',$@); }
+
+  ── INFO ────────────────────────────────────────────────────────────────
+
+  [i INFO] Missing Perl version declaration
+  ID      : PERL-MISSING-VERSION
+  Line    : 1
+  Category: best_practice
+    The script lacks a minimum Perl version declaration...
+  Suggested fix:
+    Add a version pragma after the shebang line
+  Code:
+    use v5.20;
+
+  [i INFO] No overall test suite timeout
+  ID      : PERL-NO-SUITE-TIMEOUT
+  Line    : 1
+  Category: resilience
+    8 tests x 10s = 80s worst-case. No outer alarm() to prevent runaway.
+  Suggested fix:
+    Add outer alarm() around all test calls
+  Code:
+    eval { local $SIG{ALRM}=sub{die"timeout"}; alarm(60); test_connectivity(); alarm(0); };
+
+  [i INFO] @results array grows unbounded — no size cap
+  ID      : PERL-UNBOUNDED-RESULTS-ARRAY
+  Line    : 32
+  Category: resilience
+    Every log_result() call pushes a line. Under long loops, RAM fills up.
+  Suggested fix:
+    Add size cap with write-through flush
+  Code:
+    push @results, $line; if (@results > 1000) { write_log(); @results = (); }
+
+  [i INFO] Print with explicit newline - consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 33
+  Category: io_operations
+    The Perl 5.10+ say() function automatically adds a newline...
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Code:
+    say "your text here";
+
+  [i INFO] Eval string comparison is fragile
+  ID      : PERL-FRAGILE-EVAL-STRING
+  Line    : 77
+  Category: execution_flow
+    Comparing $@ with literal string breaks if message changes.
+  Suggested fix:
+    Use flag variable instead of string-matching $@
+  Code:
+    my $timed_out=0; local $SIG{ALRM}=sub{$timed_out=1;die};
+
+  [i INFO] Print with explicit newline - consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 94
+  Category: io_operations
+    The Perl 5.10+ say() function automatically adds a newline...
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Code:
+    say "your text here";
+
+  [i INFO] Print with explicit newline - consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 113
+  Category: io_operations
+    The Perl 5.10+ say() function automatically adds a newline...
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Code:
+    say "your text here";
+
+  [i INFO] Print with explicit newline - consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 135
+  Category: io_operations
+    The Perl 5.10+ say() function automatically adds a newline...
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Code:
+    say "your text here";
+
+  [i INFO] EDA tool command: analyze
+  ID      : EDA-SYNOPSYS_DC
+  Line    : 153
+  Category: eda
+    This uses Synopsys Design Compiler. Modern alternative: Genus Synthesis Tool.
+  Suggested fix:
+    Consider migrating to Genus Synthesis Tool
+
+  [i INFO] Print with explicit newline - consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 156
+  Category: io_operations
+    The Perl 5.10+ say() function automatically adds a newline...
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Code:
+    say "your text here";
+
+  [i INFO] Print with explicit newline - consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 191
+  Category: io_operations
+    The Perl 5.10+ say() function automatically adds a newline...
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Code:
+    say "your text here";
+
+  [i INFO] Print with explicit newline - consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 235
+  Category: io_operations
+    The Perl 5.10+ say() function automatically adds a newline...
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Code:
+    say "your text here";
+
+  [i INFO] Print with explicit newline - consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 261
+  Category: io_operations
+    The Perl 5.10+ say() function automatically adds a newline...
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Code:
+    say "your text here";
+
+  [i INFO] Print with explicit newline - consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 284
+  Category: io_operations
+    The Perl 5.10+ say() function automatically adds a newline...
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Code:
+    say "your text here";
+
+  [i INFO] Time::HiRes not imported — latency test has 1s resolution
+  ID      : PERL-DEP-MISSING-HIRES
+  Line    : 286
+  Category: dependencies
+    time() has 1-second resolution. Milliseconds-level latency is invisible.
+  Suggested fix:
+    Add use Time::HiRes qw(time); at top of script
+  Code:
+    use Time::HiRes qw(time);
+
+  [i INFO] Print with explicit newline - consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 322
+  Category: io_operations
+    The Perl 5.10+ say() function automatically adds a newline...
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Code:
+    say "your text here";
+
+  [i INFO] Print with explicit newline - consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 323
+  Category: io_operations
+    The Perl 5.10+ say() function automatically adds a newline...
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Code:
+    say "your text here";
+
+  [i INFO] Print with explicit newline - consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 324
+  Category: io_operations
+    The Perl 5.10+ say() function automatically adds a newline...
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Code:
+    say "your text here";
+
+  [i INFO] Print with explicit newline - consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 325
+  Category: io_operations
+    The Perl 5.10+ say() function automatically adds a newline...
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Code:
+    say "your text here";
+
+  [i INFO] Print with explicit newline - consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 337
+  Category: io_operations
+    The Perl 5.10+ say() function automatically adds a newline...
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Code:
+    say "your text here";
+
+  [i INFO] Print with explicit newline - consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 338
+  Category: io_operations
+    The Perl 5.10+ say() function automatically adds a newline...
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Code:
+    say "your text here";
+
+  [i INFO] No structured output format for CI/CD parsing
+  ID      : PERL-NO-STRUCTURED-OUTPUT
+  Line    : 338
+  Category: operations
+    Plain text output cannot be parsed by CI/CD. TAP is Perl standard.
+  Suggested fix:
+    Add TAP output alongside plain text
+  Code:
+    printf "1..%d\n", 8; printf "%s %d - %s\n", ($status eq "PASS" ? "ok" : "not ok"), $test_num, $test_name;
+
+  [i INFO] Print with explicit newline - consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 339
+  Category: io_operations
+    The Perl 5.10+ say() function automatically adds a newline...
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Code:
+    say "your text here";
+
+  [i INFO] Print with explicit newline - consider using say
+  ID      : PERL-MODERN-SAY
+  Line    : 342
+  Category: io_operations
+    The Perl 5.10+ say() function automatically adds a newline...
+  Suggested fix:
+    Replace print with say() for automatic newline
+  Code:
+    say "your text here";
+
+================================================================================
+5. SECURITY ANALYSIS  (Full — replaces blank section from v4.0)
+================================================================================
+
+  Overall Security Risk : MEDIUM-HIGH
+
+  Finding 1 — Config vars not validated (PERL-TAINT-CONFIG-VARS)
+  Severity : MEDIUM
+  Line     : 14-17
+  Detail   : $MCP_HOST and $MCP_PORT have no input validation.
+             If moved to ARGV or ENV, they become tainted input.
+  Fix      : die unless $MCP_HOST =~ /^[\w.\-]+$/;
+
+  Finding 2 — MCP TCP connection is plaintext (no TLS)
+  Severity : HIGH
+  Line     : 44-52 (IO::Socket::INET->new)
+  Detail   : Perl source code transmitted in cleartext over TCP.
+  Fix      : Replace IO::Socket::INET with IO::Socket::SSL
+
+  Finding 3 — JSON response decoded without schema validation
+  Severity : MEDIUM
+  Line     : 84 (decode_json)
+  Detail   : Server response used without top-level structure check.
+  Fix      : Validate ref($data) eq 'HASH' && exists $data->{jsonrpc}
+
+  Finding 4 — Perl source code sent over plaintext TCP
+  Severity : HIGH
+  Lines    : 155-233 (test_analyze_modern_script)
+  Detail   : Actual Perl source transmitted as request body.
+  Fix      : Use IO::Socket::SSL or enforce localhost-only.
+
+================================================================================
+6. ISSUE GROUPING RECOMMENDATIONS  (New Section)
+================================================================================
+
+  The following issue IDs appear multiple times and should be grouped:
+
+  ┌─────────────────────────────────┬────────┬───────────────────────────────┐
+  │ Issue ID                        │ Count  │ Lines                         │
+  ├─────────────────────────────────┼────────┼───────────────────────────────┤
+  │ PERL-VOID-CALL                  │   8x    │ 327,328,329,330,331,...          │
+  │ PERL-UNCHECKED-RETURN-CONTEXT   │   7x    │ 114,136,170,212,239,...          │
+  │ PERL-UNCHECKED-CLOSE            │   4x    │ 75,102,205,316                   │
+  │ PERL-UNCHECKED-METHOD-CHAIN     │   2x    │ 44,95                            │
+  │ PERL-ALARM-NOT-PORTABLE         │   2x    │ 67,72                            │
+  │ PERL-MODERN-SAY                 │  17x    │ 322,323,324,325,337,...          │
+  └─────────────────────────────────┴────────┴───────────────────────────────┘
+
+  Grouping these 40 instances into 6 entries reduces the
+  visual issue count from 53 to approximately 19.
+
+================================================================================
+7. LINE-BY-LINE EXPLANATION  (Deep Execution Edition)
+================================================================================
+
+LEGEND:
+  [ASSIGN]  = Variable declared or assigned
+  [CALL]    = Function/method called
+  [LOOP]    = Loop
+  [FILE]    = File/socket operation
+  [METHOD]  = Object method
+  [EXEC]    = Expression executed
+  [DEF]     = Subroutine defined
+  [IMPORT]  = Module loaded
+  [RETURN]  = Value returned
+
+----------------------------------------------------------------------
+  Line    1 | #!/usr/bin/perl
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: !/usr/bin/perl
+
+  Issues at this line:
+    [i INFO] PERL-MISSING-VERSION: Missing Perl version declaration
+    Fix: Add a version pragma after the shebang line
+    [i INFO] PERL-NO-SUITE-TIMEOUT: No overall test suite timeout
+    Fix: Add outer alarm() around all test calls
+  Suggestions:
+    - Add a version pragma after the shebang line
+    - Modern code: use v5.20;
+    - Add outer alarm() around all test calls
+    - Modern code: eval { local $SIG{ALRM}=sub{die"timeout"}; alarm(60); test_connectivity(); alarm(0); };
+
+----------------------------------------------------------------------
+  Line    2 | use strict;
+----------------------------------------------------------------------
+  Execution Type : [IMPORT] Compile-time module load
+  What happens   : Loaded at COMPILE TIME. "strict" available.
+  Purpose     : External functionality import
+  Explanation : Module strict imported.
+
+
+----------------------------------------------------------------------
+  Line    3 | use warnings;
+----------------------------------------------------------------------
+  Execution Type : [IMPORT] Compile-time module load
+  What happens   : Loaded at COMPILE TIME. "warnings" available.
+  Purpose     : External functionality import
+  Explanation : Module warnings imported.
+
+
+----------------------------------------------------------------------
+  Line    4 | use JSON;
+----------------------------------------------------------------------
+  Execution Type : [IMPORT] Compile-time module load
+  What happens   : Loaded at COMPILE TIME. "JSON" available.
+  Purpose     : External functionality import
+  Explanation : Module JSON imported.
+
+  Issues at this line:
+    [? WARNING] PERL-DEP-NO-VERSION-PIN: JSON module not version-pinned
+    Fix: Add version: use JSON 2.90;
+    [? WARNING] PERL-DEP-NO-FALLBACK: No fallback if JSON is missing
+    Fix: Wrap in BEGIN{} with eval{} for graceful error
+  Suggestions:
+    - Add version: use JSON 2.90;
+    - Modern code: use JSON 2.90;   # or use JSON::MaybeXS;
+    - Wrap in BEGIN{} with eval{} for graceful error
+    - Modern code: BEGIN{eval{require JSON; JSON->import()} or die "Install JSON: cpanm JSON\n";}
+
+----------------------------------------------------------------------
+  Line    5 | use IO::Socket::INET;
+----------------------------------------------------------------------
+  Execution Type : [IMPORT] Compile-time module load
+  What happens   : Loaded at COMPILE TIME. "IO::Socket::INET" available.
+  Purpose     : External functionality import
+  Explanation : Module IO::Socket::INET imported.
+
+
+----------------------------------------------------------------------
+  Line    6 | use POSIX qw(strftime);
+----------------------------------------------------------------------
+  Execution Type : [IMPORT] Compile-time module load
+  What happens   : Loaded at COMPILE TIME. "POSIX" available.
+  Purpose     : External functionality import
+  Explanation : Module POSIX imported.
+
+
+----------------------------------------------------------------------
+  Line    8 | # ============================================================
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: ============================================================
+
+
+----------------------------------------------------------------------
+  Line    9 | #  MCP Server Test Suite for Perl Script Analysis
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: MCP Server Test Suite for Perl Script Analysis
+
+
+----------------------------------------------------------------------
+  Line   10 | #  Usage: perl test_mcp_server.pl
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: Usage: perl test_mcp_server.pl
+
+
+----------------------------------------------------------------------
+  Line   11 | # ============================================================
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: ============================================================
+
+
+----------------------------------------------------------------------
+  Line   13 | # ---------- CONFIGURATION ----------
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: ---------- CONFIGURATION ----------
+
+
+----------------------------------------------------------------------
+  Line   14 | my $MCP_HOST = '127.0.0.1';   # Change if MCP server is remote
+----------------------------------------------------------------------
+  Execution Type : [ASSIGN] Variable declaration
+  What happens   : A lexical variable is declared.
+  Purpose     : Variable creation
+  Explanation : A my variable declared.
+
+
+----------------------------------------------------------------------
+  Line   15 | my $MCP_PORT = 3000;           # Change to your MCP server port
+----------------------------------------------------------------------
+  Execution Type : [ASSIGN] Variable declaration
+  What happens   : A lexical variable is declared.
+  Purpose     : Variable creation
+  Explanation : A my variable declared.
+
+
+----------------------------------------------------------------------
+  Line   16 | my $TIMEOUT  = 10;             # seconds
+----------------------------------------------------------------------
+  Execution Type : [ASSIGN] Variable declaration
+  What happens   : A lexical variable is declared.
+  Purpose     : Variable creation
+  Explanation : A my variable declared.
+
+
+----------------------------------------------------------------------
+  Line   17 | my $LOG_FILE = 'mcp_test_results.log';
+----------------------------------------------------------------------
+  Execution Type : [ASSIGN] Variable declaration
+  What happens   : A lexical variable is declared.
+  Purpose     : Variable creation
+  Explanation : A my variable declared.
+
+
+----------------------------------------------------------------------
+  Line   19 | # -----------------------------------
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: -----------------------------------
+
+
+----------------------------------------------------------------------
+  Line   21 | my $pass_count = 0;
+----------------------------------------------------------------------
+  Execution Type : [ASSIGN] Variable declaration
+  What happens   : A lexical variable is declared.
+  Purpose     : Variable creation
+  Explanation : A my variable declared.
+
+
+----------------------------------------------------------------------
+  Line   22 | my $fail_count = 0;
+----------------------------------------------------------------------
+  Execution Type : [ASSIGN] Variable declaration
+  What happens   : A lexical variable is declared.
+  Purpose     : Variable creation
+  Explanation : A my variable declared.
+
+
+----------------------------------------------------------------------
+  Line   23 | my @results;
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Statement execution
+  What happens   : A Perl statement is executed.
+  Purpose     : Action
+  Explanation : Perl statement.
+
+
+----------------------------------------------------------------------
+  Line   25 | # ============================================================
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: ============================================================
+
+
+----------------------------------------------------------------------
+  Line   26 | # HELPER: Logger
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: HELPER: Logger
+
+
+----------------------------------------------------------------------
+  Line   27 | # ============================================================
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: ============================================================
+
+
+----------------------------------------------------------------------
+  Line   28 | sub log_result {
+----------------------------------------------------------------------
+  Execution Type : [DEF] Subroutine definition — compiled, not yet called
+  What happens   : Compiled at startup, not executed here.
+  Purpose     : Custom function definition
+  Explanation : Subroutine log_result defined.
+
+
+----------------------------------------------------------------------
+  Line   29 | my ($test_name, $status, $detail) = @_;
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   30 | my $timestamp = strftime("%Y-%m-%d %H:%M:%S", localtime);
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   31 | my $line = "[$timestamp] [$status] $test_name => $detail";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   32 | push @results, $line;
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [i INFO] PERL-UNBOUNDED-RESULTS-ARRAY: @results array grows unbounded — no size cap
+    Fix: Add size cap with write-through flush
+  Suggestions:
+    - Add size cap with write-through flush
+    - Modern code: push @results, $line; if (@results > 1000) { write_log(); @results = (); }
+
+----------------------------------------------------------------------
+  Line   33 | print "$line\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [i INFO] PERL-MODERN-SAY: Print with explicit newline - consider using say
+    Fix: Replace print with say() for automatic newline
+  Suggestions:
+    - Replace print with say() for automatic newline
+    - Modern code: say "your text here";
+
+----------------------------------------------------------------------
+  Line   34 | if ($status eq 'PASS') { $pass_count++; }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   35 | else                   { $fail_count++; }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   36 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   38 | # ============================================================
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: ============================================================
+
+
+----------------------------------------------------------------------
+  Line   39 | # HELPER: Send JSON-RPC request to MCP server
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: HELPER: Send JSON-RPC request to MCP server
+
+
+----------------------------------------------------------------------
+  Line   40 | # ============================================================
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: ============================================================
+
+
+----------------------------------------------------------------------
+  Line   41 | sub send_mcp_request {
+----------------------------------------------------------------------
+  Execution Type : [DEF] Subroutine definition — compiled, not yet called
+  What happens   : Compiled at startup, not executed here.
+  Purpose     : Custom function definition
+  Explanation : Subroutine send_mcp_request defined.
+
+
+----------------------------------------------------------------------
+  Line   42 | my ($method, $params) = @_;
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   44 | my $socket = IO::Socket::INET->new(
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [? WARNING] PERL-UNCHECKED-METHOD-CHAIN: Method call chaining without intermediate check
+    Fix: Always check ->new() result
+  Suggestions:
+    - Always check ->new() result
+    - Modern code: my $socket = IO::Socket::INET->new(%args) or die 'Cannot connect: $!';
+
+----------------------------------------------------------------------
+  Line   45 | PeerAddr => $MCP_HOST,
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   46 | PeerPort => $MCP_PORT,
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   47 | Proto    => 'tcp',
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   48 | Timeout  => $TIMEOUT,
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   49 | );
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   51 | unless ($socket) {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   52 | return (0, "Cannot connect to MCP server at $MCP_HOST:$MCP_PORT — $!");
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   53 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   55 | my $request = encode_json({
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   56 | jsonrpc => "2.0",
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   57 | id      => 1,
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [? WARNING] PERL-JSONRPC-STATIC-ID: JSON-RPC id field is hardcoded for all requests
+    Fix: Use a counter: id => ++$req_id
+  Suggestions:
+    - Use a counter: id => ++$req_id
+    - Modern code: my $req_id = 0;
+# inside send_mcp_request:
+id => ++$req_id,
+
+----------------------------------------------------------------------
+  Line   58 | method  => $method,
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   59 | params  => $params // {},
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   60 | });
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   62 | print $socket "$request\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   64 | my $response = '';
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   65 | eval {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   66 | local $SIG{ALRM} = sub { die "timeout\n" };
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   67 | alarm($TIMEOUT);
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [? WARNING] PERL-ALARM-NOT-PORTABLE: alarm() used but SIGALRM is not portable on Windows
+    Fix: Replace with IO::Select for cross-platform timeout
+  Suggestions:
+    - Replace with IO::Select for cross-platform timeout
+    - Modern code: use IO::Select; my $sel = IO::Select->new($socket); if ($sel->can_read($TIMEOUT)) { ... }
+
+----------------------------------------------------------------------
+  Line   68 | while (my $line = <$socket>) {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   69 | $response .= $line;
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   70 | last if $response =~ /\}/;  # basic end-of-JSON detection
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   71 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   72 | alarm(0);
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [? WARNING] PERL-ALARM-NOT-PORTABLE: alarm() used but SIGALRM is not portable on Windows
+    Fix: Replace with IO::Select for cross-platform timeout
+  Suggestions:
+    - Replace with IO::Select for cross-platform timeout
+    - Modern code: use IO::Select; my $sel = IO::Select->new($socket); if ($sel->can_read($TIMEOUT)) { ... }
+
+----------------------------------------------------------------------
+  Line   73 | };
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   75 | close($socket);
+----------------------------------------------------------------------
+  Execution Type : [FILE] File/socket closed
+  What happens   : Flushes and closes.
+  Purpose     : File management
+  Explanation : File handling operation.
+
+  Issues at this line:
+    [? WARNING] PERL-UNCHECKED-CLOSE: close() return value not checked
+    Fix: Check close() return value
+  Suggestions:
+    - Check close() return value
+    - Modern code: close($fh) or warn "Close failed: $!";
+
+----------------------------------------------------------------------
+  Line   77 | if ($@ eq "timeout\n") {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Statement execution
+  What happens   : A Perl statement is executed.
+  Purpose     : Action
+  Explanation : Perl statement.
+
+  Issues at this line:
+    [i INFO] PERL-FRAGILE-EVAL-STRING: Eval string comparison is fragile
+    Fix: Use flag variable instead of string-matching $@
+  Suggestions:
+    - Use flag variable instead of string-matching $@
+    - Modern code: my $timed_out=0; local $SIG{ALRM}=sub{$timed_out=1;die};
+
+----------------------------------------------------------------------
+  Line   78 | return (0, "Request timed out after ${TIMEOUT}s");
+----------------------------------------------------------------------
+  Execution Type : [RETURN] Value returned to caller
+  What happens   : Exits sub and returns a value.
+  Purpose     : Action
+  Explanation : Perl statement.
+
+
+----------------------------------------------------------------------
+  Line   79 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Action
+  Explanation : Perl statement.
+
+
+----------------------------------------------------------------------
+  Line   81 | my $decoded;
+----------------------------------------------------------------------
+  Execution Type : [ASSIGN] Variable declaration
+  What happens   : A lexical variable is declared.
+  Purpose     : Variable creation
+  Explanation : A my variable declared.
+
+
+----------------------------------------------------------------------
+  Line   82 | eval { $decoded = decode_json($response) };
+----------------------------------------------------------------------
+  Execution Type : [CALL] Function call
+  What happens   : A named subroutine is invoked.
+  Purpose     : Operation execution
+  Explanation : Calls a function.
+
+  Issues at this line:
+    [? WARNING] PERL-JSONRPC-ID-MISMATCH: No response id validation against request id
+    Fix: Validate $data->{id} matches sent id
+  Suggestions:
+    - Validate $data->{id} matches sent id
+    - Modern code: my $resp_id = $data->{id} // ''; unless ($resp_id eq $sent_id) { return (0, "Mismatch"); }
+
+----------------------------------------------------------------------
+  Line   83 | if ($@) {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Statement execution
+  What happens   : A Perl statement is executed.
+  Purpose     : Action
+  Explanation : Perl statement.
+
+
+----------------------------------------------------------------------
+  Line   84 | return (0, "Invalid JSON response: $response");
+----------------------------------------------------------------------
+  Execution Type : [RETURN] Value returned to caller
+  What happens   : Exits sub and returns a value.
+  Purpose     : Action
+  Explanation : Perl statement.
+
+
+----------------------------------------------------------------------
+  Line   85 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Action
+  Explanation : Perl statement.
+
+
+----------------------------------------------------------------------
+  Line   87 | return (1, $decoded);
+----------------------------------------------------------------------
+  Execution Type : [RETURN] Value returned to caller
+  What happens   : Exits sub and returns a value.
+  Purpose     : Action
+  Explanation : Perl statement.
+
+
+----------------------------------------------------------------------
+  Line   88 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Action
+  Explanation : Perl statement.
+
+  Issues at this line:
+    [!! CRITICAL] PERL-UNMATCHED-BRACE: Unmatched closing brace — COMPILE-TIME BLOCKER
+    Fix: Run: perl -c script.pl to identify the exact location. Most likely: one extra } after send_mcp_request's last block.
+  Suggestions:
+    - Run: perl -c script.pl to identify the exact location. Most likely: one extra } after send_mcp_request's last block.
+
+----------------------------------------------------------------------
+  Line   90 | # ============================================================
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: ============================================================
+
+
+----------------------------------------------------------------------
+  Line   91 | # TEST 1: TCP Connectivity
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: TEST 1: TCP Connectivity
+
+
+----------------------------------------------------------------------
+  Line   92 | # ============================================================
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: ============================================================
+
+
+----------------------------------------------------------------------
+  Line   93 | sub test_connectivity {
+----------------------------------------------------------------------
+  Execution Type : [DEF] Subroutine definition — compiled, not yet called
+  What happens   : Compiled at startup, not executed here.
+  Purpose     : Custom function definition
+  Explanation : Subroutine test_connectivity defined.
+
+
+----------------------------------------------------------------------
+  Line   94 | print "\n--- TEST 1: TCP Connectivity ---\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [i INFO] PERL-MODERN-SAY: Print with explicit newline - consider using say
+    Fix: Replace print with say() for automatic newline
+  Suggestions:
+    - Replace print with say() for automatic newline
+    - Modern code: say "your text here";
+
+----------------------------------------------------------------------
+  Line   95 | my $socket = IO::Socket::INET->new(
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [? WARNING] PERL-UNCHECKED-METHOD-CHAIN: Method call chaining without intermediate check
+    Fix: Always check ->new() result
+  Suggestions:
+    - Always check ->new() result
+    - Modern code: my $socket = IO::Socket::INET->new(%args) or die 'Cannot connect: $!';
+
+----------------------------------------------------------------------
+  Line   96 | PeerAddr => $MCP_HOST,
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   97 | PeerPort => $MCP_PORT,
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   98 | Proto    => 'tcp',
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line   99 | Timeout  => $TIMEOUT,
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  100 | );
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  101 | if ($socket) {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  102 | close($socket);
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [? WARNING] PERL-UNCHECKED-CLOSE: close() return value not checked
+    Fix: Check close() return value
+  Suggestions:
+    - Check close() return value
+    - Modern code: close($fh) or warn "Close failed: $!";
+
+----------------------------------------------------------------------
+  Line  103 | log_result("TCP Connectivity", "PASS", "Connected to $MCP_HOST:$MCP_PORT");
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  104 | } else {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  105 | log_result("TCP Connectivity", "FAIL", "Cannot connect — $!");
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  106 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  107 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  109 | # ============================================================
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: ============================================================
+
+
+----------------------------------------------------------------------
+  Line  110 | # TEST 2: MCP Handshake (initialize)
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: TEST 2: MCP Handshake (initialize)
+
+
+----------------------------------------------------------------------
+  Line  111 | # ============================================================
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: ============================================================
+
+
+----------------------------------------------------------------------
+  Line  112 | sub test_handshake {
+----------------------------------------------------------------------
+  Execution Type : [DEF] Subroutine definition — compiled, not yet called
+  What happens   : Compiled at startup, not executed here.
+  Purpose     : Custom function definition
+  Explanation : Subroutine test_handshake defined.
+
+
+----------------------------------------------------------------------
+  Line  113 | print "\n--- TEST 2: MCP Handshake ---\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [i INFO] PERL-MODERN-SAY: Print with explicit newline - consider using say
+    Fix: Replace print with say() for automatic newline
+  Suggestions:
+    - Replace print with say() for automatic newline
+    - Modern code: say "your text here";
+
+----------------------------------------------------------------------
+  Line  114 | my ($ok, $resp) = send_mcp_request("initialize", {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [! ERROR] PERL-UNCHECKED-RETURN-CONTEXT: Subroutine return value used without list context check
+    Fix: Capture in @result first, check count, then assign
+  Suggestions:
+    - Capture in @result first, check count, then assign
+    - Modern code: my @r = func(); die unless @r == 2; my ($a,$b)=@r;
+
+----------------------------------------------------------------------
+  Line  115 | protocolVersion => "2024-11-05",
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  116 | clientInfo      => { name => "PerlTestClient", version => "1.0" },
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  117 | });
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  119 | if (!$ok) {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  120 | log_result("MCP Handshake", "FAIL", $resp);
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  121 | return;
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  122 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  124 | if (ref $resp eq 'HASH' && exists $resp->{result}) {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  125 | log_result("MCP Handshake", "PASS", "Server responded with protocol handshake");
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  126 | } else {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  127 | log_result("MCP Handshake", "FAIL", "Unexpected response: " . encode_json($resp));
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  128 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  129 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  131 | # ============================================================
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: ============================================================
+
+
+----------------------------------------------------------------------
+  Line  132 | # TEST 3: List Available Tools
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: TEST 3: List Available Tools
+
+
+----------------------------------------------------------------------
+  Line  133 | # ============================================================
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: ============================================================
+
+
+----------------------------------------------------------------------
+  Line  134 | sub test_list_tools {
+----------------------------------------------------------------------
+  Execution Type : [DEF] Subroutine definition — compiled, not yet called
+  What happens   : Compiled at startup, not executed here.
+  Purpose     : Custom function definition
+  Explanation : Subroutine test_list_tools defined.
+
+
+----------------------------------------------------------------------
+  Line  135 | print "\n--- TEST 3: List Available Tools ---\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [i INFO] PERL-MODERN-SAY: Print with explicit newline - consider using say
+    Fix: Replace print with say() for automatic newline
+  Suggestions:
+    - Replace print with say() for automatic newline
+    - Modern code: say "your text here";
+
+----------------------------------------------------------------------
+  Line  136 | my ($ok, $resp) = send_mcp_request("tools/list", {});
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [! ERROR] PERL-UNCHECKED-RETURN-CONTEXT: Subroutine return value used without list context check
+    Fix: Capture in @result first, check count, then assign
+  Suggestions:
+    - Capture in @result first, check count, then assign
+    - Modern code: my @r = func(); die unless @r == 2; my ($a,$b)=@r;
+
+----------------------------------------------------------------------
+  Line  138 | if (!$ok) {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  139 | log_result("List Tools", "FAIL", $resp);
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  140 | return;
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  141 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  143 | if (ref $resp eq 'HASH' && exists $resp->{result}{tools}) {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  144 | my @tools = @{ $resp->{result}{tools} };
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  145 | my $tool_names = join(", ", map { $_->{name} } @tools);
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  146 | log_result("List Tools", "PASS", scalar(@tools) . " tools found: $tool_names");
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  147 | } else {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  148 | log_result("List Tools", "FAIL", "No tools array in response");
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  149 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  150 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  152 | # ============================================================
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: ============================================================
+
+
+----------------------------------------------------------------------
+  Line  153 | # TEST 4: Analyze a Modern (valid) Perl Script
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: TEST 4: Analyze a Modern (valid) Perl Script
+
+  Issues at this line:
+    [i INFO] EDA-SYNOPSYS_DC: EDA tool command: analyze
+    Fix: Consider migrating to Genus Synthesis Tool
+  Suggestions:
+    - Consider migrating to Genus Synthesis Tool
+
+----------------------------------------------------------------------
+  Line  154 | # ============================================================
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: ============================================================
+
+
+----------------------------------------------------------------------
+  Line  155 | sub test_analyze_modern_script {
+----------------------------------------------------------------------
+  Execution Type : [DEF] Subroutine definition — compiled, not yet called
+  What happens   : Compiled at startup, not executed here.
+  Purpose     : Custom function definition
+  Explanation : Subroutine test_analyze_modern_script defined.
+
+
+----------------------------------------------------------------------
+  Line  156 | print "\n--- TEST 4: Analyze Modern Perl Script ---\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [i INFO] PERL-MODERN-SAY: Print with explicit newline - consider using say
+    Fix: Replace print with say() for automatic newline
+  Suggestions:
+    - Replace print with say() for automatic newline
+    - Modern code: say "your text here";
+
+----------------------------------------------------------------------
+  Line  158 | my $modern_perl = <<'END_PERL';
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  159 | #!/usr/bin/perl
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: !/usr/bin/perl
+
+
+----------------------------------------------------------------------
+  Line  160 | use strict;
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  161 | use warnings;
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  162 | use feature 'say';
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  164 | my @items = qw(apple banana cherry);
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  165 | for my $item (@items) {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  166 | say "Item: $item";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  167 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  168 | END_PERL
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  170 | my ($ok, $resp) = send_mcp_request("tools/call", {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [! ERROR] PERL-UNCHECKED-RETURN-CONTEXT: Subroutine return value used without list context check
+    Fix: Capture in @result first, check count, then assign
+  Suggestions:
+    - Capture in @result first, check count, then assign
+    - Modern code: my @r = func(); die unless @r == 2; my ($a,$b)=@r;
+
+----------------------------------------------------------------------
+  Line  171 | name      => "analyze_perl_script",
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  172 | arguments => { code => $modern_perl, filename => "modern_sample.pl" },
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  173 | });
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  175 | if (!$ok) {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  176 | log_result("Analyze Modern Script", "FAIL", $resp);
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  177 | return;
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  178 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  180 | if (ref $resp eq 'HASH' && exists $resp->{result}) {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  181 | log_result("Analyze Modern Script", "PASS", "Analysis returned successfully");
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  182 | } else {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  183 | log_result("Analyze Modern Script", "FAIL", "Unexpected response structure");
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  184 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  185 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  187 | # ============================================================
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: ============================================================
+
+
+----------------------------------------------------------------------
+  Line  188 | # TEST 5: Detect OLD / Deprecated Perl Patterns
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: TEST 5: Detect OLD / Deprecated Perl Patterns
+
+
+----------------------------------------------------------------------
+  Line  189 | # ============================================================
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: ============================================================
+
+
+----------------------------------------------------------------------
+  Line  190 | sub test_detect_old_patterns {
+----------------------------------------------------------------------
+  Execution Type : [DEF] Subroutine definition — compiled, not yet called
+  What happens   : Compiled at startup, not executed here.
+  Purpose     : Custom function definition
+  Explanation : Subroutine test_detect_old_patterns defined.
+
+
+----------------------------------------------------------------------
+  Line  191 | print "\n--- TEST 5: Detect Old/Deprecated Perl Patterns ---\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [i INFO] PERL-MODERN-SAY: Print with explicit newline - consider using say
+    Fix: Replace print with say() for automatic newline
+  Suggestions:
+    - Replace print with say() for automatic newline
+    - Modern code: say "your text here";
+
+----------------------------------------------------------------------
+  Line  193 | # Script with intentionally OLD patterns
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: Script with intentionally OLD patterns
+
+
+----------------------------------------------------------------------
+  Line  194 | my $old_perl = <<'END_OLD';
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  195 | #!/usr/bin/perl
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: !/usr/bin/perl
+
+
+----------------------------------------------------------------------
+  Line  196 | # No strict, no warnings — old style
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: No strict, no warnings — old style
+
+
+----------------------------------------------------------------------
+  Line  198 | &mysub();               # Old-style sub call with &
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  199 | $x = 1;                 # No my/our declaration
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  200 | *glob = *other;         # Typeglob manipulation
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  201 | require "oldlib.pl";    # require with quotes (old style)
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  202 | local($x, $y) = @_;    # Overuse of local
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  203 | open(FILE, ">out.txt"); # Old 2-arg open
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [? WARNING] PERL-OLD-OPEN: Old-style 2-argument open with bareword filehandle
+    Fix: Use: open(my $fh, '<', $filename) or die ...
+  Suggestions:
+    - Use: open(my $fh, '<', $filename) or die ...
+    - Modern code: open(my $fh, '<', $filename) or die "Cannot open: $!";
+
+----------------------------------------------------------------------
+  Line  204 | print FILE "hello\n";   # Old bareword filehandle
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  205 | close(FILE);
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [? WARNING] PERL-UNCHECKED-CLOSE: close() return value not checked
+    Fix: Check close() return value
+  Suggestions:
+    - Check close() return value
+    - Modern code: close($fh) or warn "Close failed: $!";
+
+----------------------------------------------------------------------
+  Line  207 | sub mysub {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  208 | return 1;
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  209 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  210 | END_OLD
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  212 | my ($ok, $resp) = send_mcp_request("tools/call", {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [! ERROR] PERL-UNCHECKED-RETURN-CONTEXT: Subroutine return value used without list context check
+    Fix: Capture in @result first, check count, then assign
+  Suggestions:
+    - Capture in @result first, check count, then assign
+    - Modern code: my @r = func(); die unless @r == 2; my ($a,$b)=@r;
+
+----------------------------------------------------------------------
+  Line  213 | name      => "analyze_perl_script",
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  214 | arguments => { code => $old_perl, filename => "old_sample.pl" },
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  215 | });
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  217 | if (!$ok) {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  218 | log_result("Detect Old Patterns", "FAIL", $resp);
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  219 | return;
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  220 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  222 | # Check if response flags deprecated patterns
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: Check if response flags deprecated patterns
+
+
+----------------------------------------------------------------------
+  Line  223 | my $result_text = encode_json($resp->{result} // {});
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  224 | if ($result_text =~ /deprecated|old|warn|issue|strict/i) {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  225 | log_result("Detect Old Patterns", "PASS", "Server correctly flagged old patterns");
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  226 | } else {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  227 | log_result("Detect Old Patterns", "WARN", "Server responded but did not flag old patterns — check manually");
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  228 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  229 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  231 | # ============================================================
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: ============================================================
+
+
+----------------------------------------------------------------------
+  Line  232 | # TEST 6: Error Handling — Send Malformed Perl
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: TEST 6: Error Handling — Send Malformed Perl
+
+
+----------------------------------------------------------------------
+  Line  233 | # ============================================================
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: ============================================================
+
+
+----------------------------------------------------------------------
+  Line  234 | sub test_malformed_script {
+----------------------------------------------------------------------
+  Execution Type : [DEF] Subroutine definition — compiled, not yet called
+  What happens   : Compiled at startup, not executed here.
+  Purpose     : Custom function definition
+  Explanation : Subroutine test_malformed_script defined.
+
+
+----------------------------------------------------------------------
+  Line  235 | print "\n--- TEST 6: Malformed Perl Input ---\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [i INFO] PERL-MODERN-SAY: Print with explicit newline - consider using say
+    Fix: Replace print with say() for automatic newline
+  Suggestions:
+    - Replace print with say() for automatic newline
+    - Modern code: say "your text here";
+
+----------------------------------------------------------------------
+  Line  237 | my $bad_perl = 'sub broken { my $x = ; }';  # Syntax error
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  239 | my ($ok, $resp) = send_mcp_request("tools/call", {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [! ERROR] PERL-UNCHECKED-RETURN-CONTEXT: Subroutine return value used without list context check
+    Fix: Capture in @result first, check count, then assign
+  Suggestions:
+    - Capture in @result first, check count, then assign
+    - Modern code: my @r = func(); die unless @r == 2; my ($a,$b)=@r;
+
+----------------------------------------------------------------------
+  Line  240 | name      => "analyze_perl_script",
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  241 | arguments => { code => $bad_perl, filename => "broken.pl" },
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  242 | });
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  244 | if (!$ok) {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  245 | log_result("Malformed Script Handling", "FAIL", $resp);
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  246 | return;
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  247 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  249 | my $result_text = encode_json($resp // {});
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  250 | if ($result_text =~ /error|syntax|invalid/i) {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  251 | log_result("Malformed Script Handling", "PASS", "Server correctly reported syntax error");
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  252 | } else {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  253 | log_result("Malformed Script Handling", "WARN", "Server did not flag syntax error — verify manually");
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  254 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  255 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  257 | # ============================================================
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: ============================================================
+
+
+----------------------------------------------------------------------
+  Line  258 | # TEST 7: Empty Script Edge Case
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: TEST 7: Empty Script Edge Case
+
+
+----------------------------------------------------------------------
+  Line  259 | # ============================================================
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: ============================================================
+
+
+----------------------------------------------------------------------
+  Line  260 | sub test_empty_script {
+----------------------------------------------------------------------
+  Execution Type : [DEF] Subroutine definition — compiled, not yet called
+  What happens   : Compiled at startup, not executed here.
+  Purpose     : Custom function definition
+  Explanation : Subroutine test_empty_script defined.
+
+
+----------------------------------------------------------------------
+  Line  261 | print "\n--- TEST 7: Empty Script Edge Case ---\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [i INFO] PERL-MODERN-SAY: Print with explicit newline - consider using say
+    Fix: Replace print with say() for automatic newline
+  Suggestions:
+    - Replace print with say() for automatic newline
+    - Modern code: say "your text here";
+
+----------------------------------------------------------------------
+  Line  263 | my ($ok, $resp) = send_mcp_request("tools/call", {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [! ERROR] PERL-UNCHECKED-RETURN-CONTEXT: Subroutine return value used without list context check
+    Fix: Capture in @result first, check count, then assign
+  Suggestions:
+    - Capture in @result first, check count, then assign
+    - Modern code: my @r = func(); die unless @r == 2; my ($a,$b)=@r;
+
+----------------------------------------------------------------------
+  Line  264 | name      => "analyze_perl_script",
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  265 | arguments => { code => "", filename => "empty.pl" },
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  266 | });
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  268 | if (!$ok) {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  269 | log_result("Empty Script Edge Case", "FAIL", $resp);
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  270 | return;
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  271 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  273 | if (ref $resp eq 'HASH') {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  274 | log_result("Empty Script Edge Case", "PASS", "Server handled empty input without crashing");
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  275 | } else {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  276 | log_result("Empty Script Edge Case", "FAIL", "Unexpected response for empty input");
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  277 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  278 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  280 | # ============================================================
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: ============================================================
+
+
+----------------------------------------------------------------------
+  Line  281 | # TEST 8: Response Time / Latency Check
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: TEST 8: Response Time / Latency Check
+
+
+----------------------------------------------------------------------
+  Line  282 | # ============================================================
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: ============================================================
+
+
+----------------------------------------------------------------------
+  Line  283 | sub test_latency {
+----------------------------------------------------------------------
+  Execution Type : [DEF] Subroutine definition — compiled, not yet called
+  What happens   : Compiled at startup, not executed here.
+  Purpose     : Custom function definition
+  Explanation : Subroutine test_latency defined.
+
+
+----------------------------------------------------------------------
+  Line  284 | print "\n--- TEST 8: Response Latency ---\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [i INFO] PERL-MODERN-SAY: Print with explicit newline - consider using say
+    Fix: Replace print with say() for automatic newline
+  Suggestions:
+    - Replace print with say() for automatic newline
+    - Modern code: say "your text here";
+
+----------------------------------------------------------------------
+  Line  286 | my $start = time();
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [i INFO] PERL-DEP-MISSING-HIRES: Time::HiRes not imported — latency test has 1s resolution
+    Fix: Add use Time::HiRes qw(time); at top of script
+  Suggestions:
+    - Add use Time::HiRes qw(time); at top of script
+    - Modern code: use Time::HiRes qw(time);
+
+----------------------------------------------------------------------
+  Line  287 | my ($ok, $resp) = send_mcp_request("tools/list", {});
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [! ERROR] PERL-UNCHECKED-RETURN-CONTEXT: Subroutine return value used without list context check
+    Fix: Capture in @result first, check count, then assign
+  Suggestions:
+    - Capture in @result first, check count, then assign
+    - Modern code: my @r = func(); die unless @r == 2; my ($a,$b)=@r;
+
+----------------------------------------------------------------------
+  Line  288 | my $elapsed = time() - $start;
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  290 | if (!$ok) {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  291 | log_result("Latency Check", "FAIL", $resp);
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  292 | return;
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  293 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  295 | if ($elapsed <= $TIMEOUT) {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  296 | log_result("Latency Check", "PASS", "Response in ${elapsed}s (threshold: ${TIMEOUT}s)");
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  297 | } else {
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  298 | log_result("Latency Check", "FAIL", "Response took ${elapsed}s — exceeded ${TIMEOUT}s threshold");
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  299 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  300 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  302 | # ============================================================
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: ============================================================
+
+
+----------------------------------------------------------------------
+  Line  303 | # WRITE RESULTS TO LOG FILE
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: WRITE RESULTS TO LOG FILE
+
+
+----------------------------------------------------------------------
+  Line  304 | # ============================================================
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: ============================================================
+
+
+----------------------------------------------------------------------
+  Line  305 | sub write_log {
+----------------------------------------------------------------------
+  Execution Type : [DEF] Subroutine definition — compiled, not yet called
+  What happens   : Compiled at startup, not executed here.
+  Purpose     : Custom function definition
+  Explanation : Subroutine write_log defined.
+
+
+----------------------------------------------------------------------
+  Line  306 | open(my $fh, '>', $LOG_FILE) or die "Cannot write log: $!";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  307 | print $fh "=" x 60 . "\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  308 | print $fh "MCP SERVER TEST RESULTS\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  309 | print $fh "Run at: " . strftime("%Y-%m-%d %H:%M:%S", localtime) . "\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  310 | print $fh "Server: $MCP_HOST:$MCP_PORT\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  311 | print $fh "=" x 60 . "\n\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  312 | print $fh "$_\n" for @results;
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  313 | print $fh "\n" . "=" x 60 . "\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  314 | print $fh "SUMMARY: $pass_count PASSED | $fail_count FAILED\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  315 | print $fh "=" x 60 . "\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  316 | close($fh);
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Expression evaluated
+  What happens   : A Perl expression is evaluated.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+  Issues at this line:
+    [? WARNING] PERL-UNCHECKED-CLOSE: close() return value not checked
+    Fix: Check close() return value
+  Suggestions:
+    - Check close() return value
+    - Modern code: close($fh) or warn "Close failed: $!";
+
+----------------------------------------------------------------------
+  Line  317 | }
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Block terminator
+  What happens   : Exits the current block scope. Local variables destroyed.
+  Purpose     : Code execution
+  Explanation : This line contains a standalone expression.
+
+
+----------------------------------------------------------------------
+  Line  319 | # ============================================================
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: ============================================================
+
+
+----------------------------------------------------------------------
+  Line  320 | # MAIN — Run All Tests
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: MAIN — Run All Tests
+
+
+----------------------------------------------------------------------
+  Line  321 | # ============================================================
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: ============================================================
+
+
+----------------------------------------------------------------------
+  Line  322 | print "=" x 60 . "\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Output operation
+  What happens   : Prints data to STDOUT.
+  Purpose     : Input/Output
+  Explanation : Input/output operation.
+
+  Issues at this line:
+    [i INFO] PERL-MODERN-SAY: Print with explicit newline - consider using say
+    Fix: Replace print with say() for automatic newline
+  Suggestions:
+    - Replace print with say() for automatic newline
+    - Modern code: say "your text here";
+
+----------------------------------------------------------------------
+  Line  323 | print " MCP SERVER TEST SUITE — Perl Script Analyzer\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Output operation
+  What happens   : Prints data to STDOUT.
+  Purpose     : Input/Output
+  Explanation : Input/output operation.
+
+  Issues at this line:
+    [i INFO] PERL-MODERN-SAY: Print with explicit newline - consider using say
+    Fix: Replace print with say() for automatic newline
+  Suggestions:
+    - Replace print with say() for automatic newline
+    - Modern code: say "your text here";
+
+----------------------------------------------------------------------
+  Line  324 | print " Target: $MCP_HOST:$MCP_PORT\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Output operation
+  What happens   : Prints data to STDOUT.
+  Purpose     : Input/Output
+  Explanation : Input/output operation.
+
+  Issues at this line:
+    [i INFO] PERL-MODERN-SAY: Print with explicit newline - consider using say
+    Fix: Replace print with say() for automatic newline
+  Suggestions:
+    - Replace print with say() for automatic newline
+    - Modern code: say "your text here";
+
+----------------------------------------------------------------------
+  Line  325 | print "=" x 60 . "\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Output operation
+  What happens   : Prints data to STDOUT.
+  Purpose     : Input/Output
+  Explanation : Input/output operation.
+
+  Issues at this line:
+    [i INFO] PERL-MODERN-SAY: Print with explicit newline - consider using say
+    Fix: Replace print with say() for automatic newline
+  Suggestions:
+    - Replace print with say() for automatic newline
+    - Modern code: say "your text here";
+
+----------------------------------------------------------------------
+  Line  327 | test_connectivity();
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Statement execution
+  What happens   : A Perl statement is executed.
+  Purpose     : Action
+  Explanation : Perl statement.
+
+  Issues at this line:
+    [? WARNING] PERL-VOID-CALL: Subroutine called but return value is fully discarded
+    Fix: Wrap each test call in eval{}
+  Suggestions:
+    - Wrap each test call in eval{}
+    - Modern code: eval { test_sub() }; if ($@) { log_result('EXCEPTION','FAIL',$@); }
+
+----------------------------------------------------------------------
+  Line  328 | test_handshake();
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Statement execution
+  What happens   : A Perl statement is executed.
+  Purpose     : Action
+  Explanation : Perl statement.
+
+  Issues at this line:
+    [? WARNING] PERL-VOID-CALL: Subroutine called but return value is fully discarded
+    Fix: Wrap each test call in eval{}
+  Suggestions:
+    - Wrap each test call in eval{}
+    - Modern code: eval { test_sub() }; if ($@) { log_result('EXCEPTION','FAIL',$@); }
+
+----------------------------------------------------------------------
+  Line  329 | test_list_tools();
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Statement execution
+  What happens   : A Perl statement is executed.
+  Purpose     : Action
+  Explanation : Perl statement.
+
+  Issues at this line:
+    [? WARNING] PERL-VOID-CALL: Subroutine called but return value is fully discarded
+    Fix: Wrap each test call in eval{}
+  Suggestions:
+    - Wrap each test call in eval{}
+    - Modern code: eval { test_sub() }; if ($@) { log_result('EXCEPTION','FAIL',$@); }
+
+----------------------------------------------------------------------
+  Line  330 | test_analyze_modern_script();
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Statement execution
+  What happens   : A Perl statement is executed.
+  Purpose     : Action
+  Explanation : Perl statement.
+
+  Issues at this line:
+    [? WARNING] PERL-VOID-CALL: Subroutine called but return value is fully discarded
+    Fix: Wrap each test call in eval{}
+  Suggestions:
+    - Wrap each test call in eval{}
+    - Modern code: eval { test_sub() }; if ($@) { log_result('EXCEPTION','FAIL',$@); }
+
+----------------------------------------------------------------------
+  Line  331 | test_detect_old_patterns();
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Statement execution
+  What happens   : A Perl statement is executed.
+  Purpose     : Action
+  Explanation : Perl statement.
+
+  Issues at this line:
+    [? WARNING] PERL-VOID-CALL: Subroutine called but return value is fully discarded
+    Fix: Wrap each test call in eval{}
+  Suggestions:
+    - Wrap each test call in eval{}
+    - Modern code: eval { test_sub() }; if ($@) { log_result('EXCEPTION','FAIL',$@); }
+
+----------------------------------------------------------------------
+  Line  332 | test_malformed_script();
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Statement execution
+  What happens   : A Perl statement is executed.
+  Purpose     : Action
+  Explanation : Perl statement.
+
+  Issues at this line:
+    [? WARNING] PERL-VOID-CALL: Subroutine called but return value is fully discarded
+    Fix: Wrap each test call in eval{}
+  Suggestions:
+    - Wrap each test call in eval{}
+    - Modern code: eval { test_sub() }; if ($@) { log_result('EXCEPTION','FAIL',$@); }
+
+----------------------------------------------------------------------
+  Line  333 | test_empty_script();
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Statement execution
+  What happens   : A Perl statement is executed.
+  Purpose     : Action
+  Explanation : Perl statement.
+
+  Issues at this line:
+    [? WARNING] PERL-VOID-CALL: Subroutine called but return value is fully discarded
+    Fix: Wrap each test call in eval{}
+  Suggestions:
+    - Wrap each test call in eval{}
+    - Modern code: eval { test_sub() }; if ($@) { log_result('EXCEPTION','FAIL',$@); }
+
+----------------------------------------------------------------------
+  Line  334 | test_latency();
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Statement execution
+  What happens   : A Perl statement is executed.
+  Purpose     : Action
+  Explanation : Perl statement.
+
+  Issues at this line:
+    [? WARNING] PERL-VOID-CALL: Subroutine called but return value is fully discarded
+    Fix: Wrap each test call in eval{}
+  Suggestions:
+    - Wrap each test call in eval{}
+    - Modern code: eval { test_sub() }; if ($@) { log_result('EXCEPTION','FAIL',$@); }
+
+----------------------------------------------------------------------
+  Line  336 | # Final Summary
+----------------------------------------------------------------------
+  Execution Type : Comment — no runtime execution
+  What happens   : This line is a comment. Completely ignored by Perl.
+  Purpose     : Code execution
+  Explanation : This is a comment: Final Summary
+
+
+----------------------------------------------------------------------
+  Line  337 | print "\n" . "=" x 60 . "\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Output operation
+  What happens   : Prints data to STDOUT.
+  Purpose     : Input/Output
+  Explanation : Input/output operation.
+
+  Issues at this line:
+    [i INFO] PERL-MODERN-SAY: Print with explicit newline - consider using say
+    Fix: Replace print with say() for automatic newline
+  Suggestions:
+    - Replace print with say() for automatic newline
+    - Modern code: say "your text here";
+
+----------------------------------------------------------------------
+  Line  338 | print " RESULTS: $pass_count PASSED | $fail_count FAILED\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Output operation
+  What happens   : Prints data to STDOUT.
+  Purpose     : Input/Output
+  Explanation : Input/output operation.
+
+  Issues at this line:
+    [i INFO] PERL-MODERN-SAY: Print with explicit newline - consider using say
+    Fix: Replace print with say() for automatic newline
+    [i INFO] PERL-NO-STRUCTURED-OUTPUT: No structured output format for CI/CD parsing
+    Fix: Add TAP output alongside plain text
+  Suggestions:
+    - Replace print with say() for automatic newline
+    - Modern code: say "your text here";
+    - Add TAP output alongside plain text
+    - Modern code: printf "1..%d\n", 8; printf "%s %d - %s\n", ($status eq "PASS" ? "ok" : "not ok"), $test_num, $test_name;
+
+----------------------------------------------------------------------
+  Line  339 | print "=" x 60 . "\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Output operation
+  What happens   : Prints data to STDOUT.
+  Purpose     : Input/Output
+  Explanation : Input/output operation.
+
+  Issues at this line:
+    [i INFO] PERL-MODERN-SAY: Print with explicit newline - consider using say
+    Fix: Replace print with say() for automatic newline
+  Suggestions:
+    - Replace print with say() for automatic newline
+    - Modern code: say "your text here";
+
+----------------------------------------------------------------------
+  Line  341 | write_log();
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Statement execution
+  What happens   : A Perl statement is executed.
+  Purpose     : Action
+  Explanation : Perl statement.
+
+
+----------------------------------------------------------------------
+  Line  342 | print "\nFull results saved to: $LOG_FILE\n";
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Output operation
+  What happens   : Prints data to STDOUT.
+  Purpose     : Input/Output
+  Explanation : Input/output operation.
+
+  Issues at this line:
+    [i INFO] PERL-MODERN-SAY: Print with explicit newline - consider using say
+    Fix: Replace print with say() for automatic newline
+  Suggestions:
+    - Replace print with say() for automatic newline
+    - Modern code: say "your text here";
+
+----------------------------------------------------------------------
+  Line  344 | exit($fail_count > 0 ? 1 : 0);
+----------------------------------------------------------------------
+  Execution Type : [EXEC] Statement execution
+  What happens   : A Perl statement is executed.
+  Purpose     : Action
+  Explanation : Perl statement.
+
+
+================================================================================
+8. EXECUTION CLARITY SUMMARY TABLE
+================================================================================
+
+  Line(s)      | Type           | Clarity Issue                          | Priority  
+  ----------   | ------------   | ------------------------------------   | --------  
+  1            | [COMMENT]      | [INFO] PERL-MISSING-VERSION            | Low       
+  2            | [IMPORT]       | ✅ No issues                            | —         
+  3            | [IMPORT]       | ✅ No issues                            | —         
+  4            | [IMPORT]       | [WARNING] PERL-DEP-NO-VERSION-PIN      | Medium    
+  5            | [IMPORT]       | ✅ No issues                            | —         
+  6            | [IMPORT]       | ✅ No issues                            | —         
+  8            | [COMMENT]      | ✅ No issues                            | —         
+  9            | [COMMENT]      | ✅ No issues                            | —         
+  10           | [COMMENT]      | ✅ No issues                            | —         
+  11           | [COMMENT]      | ✅ No issues                            | —         
+  13           | [COMMENT]      | ✅ No issues                            | —         
+  14           | [ASSIGN]       | ✅ No issues                            | —         
+  15           | [ASSIGN]       | ✅ No issues                            | —         
+  16           | [ASSIGN]       | ✅ No issues                            | —         
+  17           | [ASSIGN]       | ✅ No issues                            | —         
+  19           | [COMMENT]      | ✅ No issues                            | —         
+  21           | [ASSIGN]       | ✅ No issues                            | —         
+  22           | [ASSIGN]       | ✅ No issues                            | —         
+  23           | [EXEC]         | ✅ No issues                            | —         
+  25           | [COMMENT]      | ✅ No issues                            | —         
+  ... (table truncated to 20 rows — see v3.0 section for full)
+
+================================================================================
+9. REFACTORING ROADMAP  (Updated v5.0)
+================================================================================
+
+  PHASE 1 — Do RIGHT NOW (script will not run until done)
+  ──────────────────────────────────────────────────
+   1. perl -c script.pl → Identify exact unmatched brace at L88
+   2. Fix the brace → Verify with perl -c script.pl = 'syntax OK'
+   3. Investigate mysub() at L207 → Delete or document
+
+  PHASE 2 — Critical Execution Safety  (< 2 hours)
+  ──────────────────────────────────
+   4. Add eval{} around all 8 test calls (L327-334)
+   5. Create safe_mcp_call() helper (fixes 7 RETURN-CONTEXT instances)
+   6. Fix timeout: replace $@ string match with flag variable (L77)
+   7. Add close() return checks at L75, L102, L205, L316
+   8. Add use IO::Select and replace alarm() with IO::Select (L67,72)
+   9. Add $MCP_HOST/$MCP_PORT validation
+
+  PHASE 3 — Protocol + Dependencies  (< 3 hours)
+  ──────────────────────────────────────────────
+  10. Add $req_id counter for JSON-RPC ids (L57)
+  11. Add response id validation (L82)
+  12. Add use JSON 2.90; and use v5.20; version declarations
+  13. Add use Time::HiRes qw(time); for accurate latency
+  14. Add BEGIN{} fallback for JSON module
+  15. Add JSON response schema validation (L84)
+  16. Add socket byte cap inside read loop (L69-71)
+
+  PHASE 4 — Quality + Security  (< 4 hours)
+  ─────────────────────────────────────────
+  17. Add IO::Socket::SSL support
+  18. Replace print+\n with say() (13 instances)
+  19. Convert config vars to env-overridable (L14-17)
+  20. Add log rotation / timestamped filename (L306)
+  21. Add TAP output for CI/CD
+  22. Replace old heredoc with <<~ indented form (L158-188)
+  23. Add assertion for 'analyze' tool in test_list_tools()
+
+  PHASE 5 — Excellence  (optional, future)
+  ─────────────────────────────────────────
+  24-28: Test::More, parallel tests, reconnection, concurrency, HTML report
+
+================================================================================
+10. INTER-ISSUE DEPENDENCY MAP  (New Section)
+================================================================================
+
+  Some fixes must happen in a specific order. Fix A before Fix B:
+
+  PERL-UNMATCHED-BRACE (L88)
+    └── MUST fix first — all other issues irrelevant until script compiles
+         └── After fixing brace:
+              ├── PERL-VOID-CALL (L327-334)
+              │    └── Requires: eval{} wrapper added to main block
+              │         └── Enables: PERL-UNCHECKED-RETURN-CONTEXT fix
+              ├── PERL-ALARM-NOT-PORTABLE (L67,72)
+              │    └── Requires: IO::Select imported first
+              ├── PERL-JSONRPC-STATIC-ID (L57)
+              │    └── Enables: PERL-JSONRPC-ID-MISMATCH fix (L82)
+              └── PERL-NO-TLS (L44-52)
+                   └── Requires: IO::Socket::SSL installed
+
+================================================================================
+11. UPDATED MCP SERVER GAPS  (v5.0 — Total: 13)
+================================================================================
+
+  Gap  1 — PERL-UNCHECKED-CLOSE           (L75, 102, 205, 316)
+  Gap  2 — PERL-MISSING-VERSION           (L1)
+  Gap  3 — PERL-UNBOUNDED-SOCKET-READ     (LN/A)
+  Gap  4 — PERL-VOID-CALL                 (L327, 328, 329, 330, 331, 332, 333, 334)
+  Gap  5 — PERL-UNCHECKED-RETURN-CONTEXT  (L114, 136, 170, 212, 239, 263, 287)
+  Gap  6 — PERL-FRAGILE-EVAL-STRING       (L77)
+  Gap  7 — PERL-CHOP-VS-CHOMP             (LN/A)
+  Gap  8 — PERL-ENCODE-NOT-IN-EVAL        (LN/A)
+  Gap  9 — PERL-DEP-NO-VERSION-PIN        (L4)
+  Gap 10 — PERL-ALARM-NOT-PORTABLE        (L67, 72)
+  Gap 11 — PERL-JSONRPC-STATIC-ID         (L57)
+  Gap 12 — PERL-JSONRPC-ID-MISMATCH       (L82)
+  Gap 13 — PERL-LOG-NO-ROTATION           (LN/A)
+
+  Total gaps: 13
+
+================================================================================
+                    END OF V5.0 UPDATE
+================================================================================
+  Version history:
+    v1.0 → 3 issues  (missing strict, warnings, old open)
+    v2.0 → 5 issues  (+sensitive file, chop vs chomp)
+    v3.0 → 32 issues (+execution flow, loop bounds, socket, eval)
+    v4.0 → 53 issues (+deps, portability, protocol, performance)
+    v5.0 → 53 issues  (+security TLS, dead code, grouping)
+
+  Total MCP server gaps: 13
+  Most important action: Fix PERL-UNMATCHED-BRACE (L88) immediately.
+                         The script cannot run until this is resolved.
+
+  Generated by MPC Protocol - Perl Script Analyzer  v5.0.0
+  Updated : 2026-05-28
+================================================================================
